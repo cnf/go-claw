@@ -19,7 +19,8 @@ type RemoteListener interface {
 }
 
 func (self *CommandStream) AddListener(l RemoteListener) bool {
-    go l.RunListener(self.Ch)
+    //go l.RunListener(self.Ch)
+    go l.RunListener(self)
     return true
 }
 
