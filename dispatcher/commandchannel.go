@@ -1,31 +1,35 @@
-package structures
+package dispatcher
 
 // import "github.com/cnf/progrem/listeners"
 
 type RemoteCommand struct {
-    code   string
-    repeat int
-    key    string
-    source   string
+    Code   string
+    Repeat int
+    Key    string
+    Source   string
 }
 
 type CommandStream struct {
-    ch chan *RemoteCommand
-    err error
+    Ch chan *RemoteCommand
+    Err error
+}
+
+type RemoteListener interface {
+    RunListener(ch chan *RemoteCommand)
 }
 
 func (self *CommandStream) AddListener(l RemoteListener) bool {
-    go l.RunListener(self.ch)
+    go l.RunListener(self.Ch)
     return true
 }
 
 func (self *CommandStream) Next(cmd *RemoteCommand) bool {
     var ok bool
-    tmp, ok := <-self.ch
+    tmp, ok := <-self.Ch
     *cmd = *tmp
     return ok
 }
 
 func (self *CommandStream) Error() error {
-    return self.err
+    return self.Err
 }
