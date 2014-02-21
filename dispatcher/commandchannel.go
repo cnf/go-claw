@@ -15,7 +15,8 @@ type CommandStream struct {
 }
 
 type RemoteListener interface {
-    RunListener(ch chan *RemoteCommand)
+    //RunListener(ch chan *RemoteCommand)
+    RunListener(cs *CommandStream)
 }
 
 func (self *CommandStream) AddListener(l RemoteListener) bool {
