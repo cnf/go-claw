@@ -11,8 +11,8 @@ func main() {
     defer cs.Close()
     var out dispatcher.RemoteCommand
 
-    cs.AddListener(&listeners.LircSocketListener{"/var/run/lirc/lircd"})
-    cs.AddListener(&listeners.LircSocketListener{"/tmp/echo.sock"})
+    cs.AddListener(&listeners.LircSocketListener{Path: "/var/run/lirc/lircd"})
+    cs.AddListener(&listeners.LircSocketListener{Path: "/tmp/echo.sock"})
 
     for cs.Next(&out) {
         if cs.HasError() {
