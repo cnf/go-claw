@@ -1,28 +1,38 @@
 package dispatcher
 
-// import "github.com/cnf/progrem/listeners"
-
-type RemoteCommand struct {
-    Code   string
-    Repeat int
-    Key    string
-    Source   string
-}
-
 type CommandStream struct {
     Ch chan *RemoteCommand
-    Err error
+    ChErr chan error
+    count int
+    err error
 }
 
-type RemoteListener interface {
-    //RunListener(ch chan *RemoteCommand)
-    RunListener(cs *CommandStream)
+func NewCommandStream() *CommandStream {
+    cs := &CommandStream{ Ch: make(chan *RemoteCommand), ChErr: make(chan error), count: 0, err: nil}
+    return cs
+}
+
+func (self *CommandStream) Close() {
+    close(self.Ch)
+    close(self.ChErr)
 }
 
 func (self *CommandStream) AddListener(l RemoteListener) bool {
-    //go l.RunListener(self.Ch)
     go l.RunListener(self)
+    self.count++
     return true
+}
+
+func (self *CommandStream) HasError() bool {
+    return (self.err != nil)
+}
+
+func (self *CommandStream) GetError() error {
+    return self.err
+}
+
+func (self *CommandStream) ClearError() {
+    self.err = nil
 }
 
 func (self *CommandStream) Next(cmd *RemoteCommand) bool {
@@ -33,5 +43,5 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
 }
 
 func (self *CommandStream) Error() error {
-    return self.Err
+    return self.err
 }

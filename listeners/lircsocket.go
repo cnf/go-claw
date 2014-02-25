@@ -8,6 +8,7 @@ import "strings"
 import "bufio"
 import "log"
 import "strconv"
+import "time"
 
 import "github.com/cnf/progrem/dispatcher"
 
@@ -16,16 +17,25 @@ type LircSocketListener struct {
 }
 
 func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
-    c,err := net.Dial("unix", self.Path)
+    c, err := net.Dial("unix", self.Path)
     if err != nil {
-        cs.Err = err
+        cs.ChErr <- err
         return
     }
     for {
         reader := bufio.NewReader(c)
+        now := time.Now()
         str, err := reader.ReadString('\n')
-        if err != nil && err != io.EOF {
-            cs.Err = err
+        if err != nil {
+           if err != io.EOF {
+               // Remote end closed socket
+               fmt.Printf("ERROR: Unknown error occured!\n")
+           } else {
+               fmt.Printf("ERROR: Socket closed by remote host!\n")
+               time.Sleep(1000 * time.Millisecond)
+               continue
+           }
+            cs.ChErr <- err
             return
         }
 
@@ -39,7 +49,7 @@ func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
             fmt.Printf("ERROR: Could not parse %v, not a number? \n", out[1])
             continue
         }
-        cs.Ch <- &dispatcher.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3] }
+        cs.Ch <- &dispatcher.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }
 
     }
 }
