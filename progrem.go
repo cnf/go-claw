@@ -6,6 +6,7 @@ import "github.com/cnf/go-claw/clog"
 
 func main() {
     clog.Info("running")
+    clog.Setup(&clog.Config{Path: "/tmp/clog.log"})
     // cs := &dispatcher.CommandStream{Ch: make(chan *dispatcher.RemoteCommand)}
     cs := dispatcher.NewCommandStream()
     defer cs.Close()
