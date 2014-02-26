@@ -1,6 +1,6 @@
 package dispatcher
 
-import "fmt"
+import "github.com/cnf/go-claw/clog"
 
 type CommandStream struct {
     Ch chan *RemoteCommand
@@ -48,11 +48,10 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
         return false
     }
     for {
-        fmt.Printf("Nr of listeners: %d\n", self.count)
         select {
         case tmp, ok := <- self.Ch:
             if (!ok) {
-                fmt.Printf("Error encountered while reading the next command\n")
+                clog.Warn("Error encountered while reading the next command\n")
                 return false
             }
             *cmd = *tmp
@@ -62,7 +61,7 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
             if (self.Fatal) {
                 self.count--
             }
-            fmt.Printf("Listener exited and reported an error: %v\n", err)
+            clog.Error("Listener exited and reported an error: %v\n", err)
             if (self.count > 0) {
                 continue
             }

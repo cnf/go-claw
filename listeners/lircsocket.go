@@ -2,15 +2,14 @@ package listeners
 // package main
 
 import "net"
-import "fmt"
 import "io"
 import "strings"
 import "bufio"
-import "log"
 import "strconv"
 import "time"
 
-import "github.com/cnf/progrem/dispatcher"
+import "github.com/cnf/go-claw/dispatcher"
+import "github.com/cnf/go-claw/clog"
 
 type LircSocketListener struct {
     Path string
@@ -51,15 +50,14 @@ func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
         if err != nil {
             if err != io.EOF {
                 // Remote end closed socket
-                fmt.Printf("ERROR: Unknown error occured!\n")
+                clog.Error("Unknown error occured: %s", err.Error())
             } else {
-                fmt.Printf("========================================\n")
-                fmt.Printf("ERROR: Socket closed by remote host!\n")
+                clog.Error("Socket closed by remote host: %s", err.Error())
                 time.Sleep(1000 * time.Millisecond)
                 // var err error
                 // self.conn, err = net.Dial("unix", self.Path)
                 if (!self.Setup(cs)) {
-                    fmt.Printf("DEBUG: setup failed\n")
+                    clog.Debug("DEBUG: setup failed")
                     time.Sleep(3000 * time.Millisecond)
                     continue
                 }
@@ -73,12 +71,12 @@ func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
 
         out := strings.Split(strings.TrimSpace(str), " ")
         if (len(out) != 4) {
-            log.Println(fmt.Sprintf("ERROR: Length of split '%v' is not 4!\n", str))
+            clog.Error("Length of split '%v' is not 4!", str)
             continue
         }
         rpt, err := strconv.ParseInt(out[1], 16, 0)
         if (err != nil) {
-            fmt.Printf("ERROR: Could not parse %v, not a number? \n", out[1])
+            clog.Error("Could not parse %v, not a number?", out[1])
             continue
         }
         cs.Ch <- &dispatcher.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }

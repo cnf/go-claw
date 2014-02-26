@@ -1,11 +1,11 @@
 package main
 
-import "fmt"
-import "github.com/cnf/progrem/listeners"
-import "github.com/cnf/progrem/dispatcher"
+import "github.com/cnf/go-claw/listeners"
+import "github.com/cnf/go-claw/dispatcher"
+import "github.com/cnf/go-claw/clog"
 
 func main() {
-    println("running")
+    clog.Info("running")
     // cs := &dispatcher.CommandStream{Ch: make(chan *dispatcher.RemoteCommand)}
     cs := dispatcher.NewCommandStream()
     defer cs.Close()
@@ -16,9 +16,9 @@ func main() {
 
     for cs.Next(&out) {
         if cs.HasError() {
-            fmt.Printf("An error occured somewhere: %v\n", cs.GetError())
+            clog.Warn("An error occured somewhere: %v\n", cs.GetError())
             cs.ClearError()
         }
-        fmt.Printf("code: %s - repeat: %3d - key: %s - name: %s\n", out.Code, out.Repeat, out.Key, out.Source)
+        clog.Info("code: %s - repeat: %3d - key: %s - name: %s\n", out.Code, out.Repeat, out.Key, out.Source)
     }
 }
