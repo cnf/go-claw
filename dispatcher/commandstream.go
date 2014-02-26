@@ -51,7 +51,7 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
         select {
         case tmp, ok := <- self.Ch:
             if (!ok) {
-                clog.Warn("Error encountered while reading the next command\n")
+                clog.Warn("Error encountered while reading the next command")
                 return false
             }
             *cmd = *tmp
@@ -61,7 +61,7 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
             if (self.Fatal) {
                 self.count--
             }
-            clog.Error("Listener exited and reported an error: %v\n", err)
+            clog.Error("Listener exited and reported an error: %v", err)
             if (self.count > 0) {
                 continue
             }

@@ -16,9 +16,9 @@ func main() {
 
     for cs.Next(&out) {
         if cs.HasError() {
-            clog.Warn("An error occured somewhere: %v\n", cs.GetError())
+            clog.Warn("An error occured somewhere: %v", cs.GetError())
             cs.ClearError()
         }
-        clog.Info("code: %s - repeat: %3d - key: %s - name: %s\n", out.Code, out.Repeat, out.Key, out.Source)
+        clog.Info("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
     }
 }

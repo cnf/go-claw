@@ -1,13 +1,13 @@
 package clog
 
 import "fmt"
+import "strings"
 // import "time"
 
 var ch chan *clogger
 
 func init() {
     ch = make(chan *clogger)
-    println(">>>>>>>> starting logger")
     go runlogger()
 }
 
@@ -26,7 +26,7 @@ func runlogger() {
             // const layout = "Jan 2, 2006 at 3:04pm (MST)"
             // const layout = time.Stamp
             // fmt.Printf("%s - %s\n", now.Format(layout), chn.message)
-            fmt.Printf("%s - %s\n", chn.severity, chn.message)
+            fmt.Printf("%s - %s\n", chn.severity, strings.TrimSpace(chn.message))
         }
     }
 }
