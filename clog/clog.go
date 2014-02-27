@@ -48,7 +48,7 @@ func init() {
     ch = make(chan *clogger, chsize)
     stopch = make(chan bool)
 
-    cfg = &Config{writer: os.Stderr, loglevel: 5}
+    cfg = &Config{writer: os.Stderr, loglevel: DEBUG}
     cfgch = make(chan *Config)
     go runlogger()
 }

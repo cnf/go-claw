@@ -3,17 +3,23 @@ package main
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/clog"
+import "os"
+import "os/signal"
 
 // import "os"
 
 func main() {
     defer clog.Stop()
-    clog.Debug("debug running")
-    clog.Info("running")
     clog.SetLogLevel(clog.DEBUG)
-    // clog.Setup(&clog.Config{Path: "/tmp/clog.log"})
-    // clog.Setup(os.Stdout)
-    // cs := &dispatcher.CommandStream{Ch: make(chan *dispatcher.RemoteCommand)}
+
+    sigc := make(chan os.Signal, 1)
+    signal.Notify(sigc, os.Interrupt)
+    go func() {
+        <- sigc
+        clog.Stop()
+        os.Exit(1)
+    }()
+
     cs := dispatcher.NewCommandStream()
     defer cs.Close()
     var out dispatcher.RemoteCommand
