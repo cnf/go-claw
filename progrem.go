@@ -4,9 +4,15 @@ import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/clog"
 
+// import "os"
+
 func main() {
+    defer clog.Stop()
+    clog.Debug("debug running")
     clog.Info("running")
-    clog.Setup(&clog.Config{Path: "/tmp/clog.log"})
+    clog.SetLogLevel(clog.DEBUG)
+    // clog.Setup(&clog.Config{Path: "/tmp/clog.log"})
+    // clog.Setup(os.Stdout)
     // cs := &dispatcher.CommandStream{Ch: make(chan *dispatcher.RemoteCommand)}
     cs := dispatcher.NewCommandStream()
     defer cs.Close()
@@ -20,6 +26,6 @@ func main() {
             clog.Warn("An error occured somewhere: %v", cs.GetError())
             cs.ClearError()
         }
-        clog.Info("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
+        clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
     }
 }
