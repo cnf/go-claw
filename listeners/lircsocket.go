@@ -1,5 +1,4 @@
 package listeners
-// package main
 
 import "net"
 import "io"
@@ -8,20 +7,21 @@ import "bufio"
 import "strconv"
 import "time"
 
-import "github.com/cnf/go-claw/dispatcher"
+import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/clog"
 
 type LircSocketListener struct {
     Path string
-    conn net.Conn
+    // conn net.Conn
     reader *bufio.Reader
 }
 
-func (self *LircSocketListener) Setup(cs *dispatcher.CommandStream) bool {
-    // var err error
-    // self.conn, err = net.Dial("unix", self.Path)
+func (self *LircSocketListener) Setup(cs *commandstream.CommandStream) bool {
+    clog.Debug("Opening socket: %s", self.Path)
     c, err := net.Dial("unix", self.Path)
+    // If there is no socket to bind to during setup, we fail.
     if err != nil {
+        clog.Warn("Socket setup failed for %s", self.Path)
         cs.ChErr <- err
         return false
     }
@@ -29,7 +29,7 @@ func (self *LircSocketListener) Setup(cs *dispatcher.CommandStream) bool {
     return true
 }
 
-func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
+func (self *LircSocketListener) RunListener(cs *commandstream.CommandStream) {
     // var err error
     // self.conn, err = net.Dial("unix", self.Path)
     // if err != nil {
@@ -41,12 +41,8 @@ func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
         return
     }
     for {
-        // fmt.Printf("DEBUG: enter for - 1\n")
-        // reader := bufio.NewReader(self.conn)
-        // fmt.Printf("DEBUG: enter for - 2\n")
         now := time.Now()
         str, err := self.reader.ReadString('\n')
-        // fmt.Printf("DEBUG: enter for - 3\n")
         if err != nil {
             if err != io.EOF {
                 // Remote end closed socket
@@ -57,13 +53,12 @@ func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
                 // var err error
                 // self.conn, err = net.Dial("unix", self.Path)
                 if (!self.Setup(cs)) {
-                    clog.Debug("DEBUG: setup failed")
                     time.Sleep(3000 * time.Millisecond)
                     continue
                 }
                 continue
             }
-            cs.ChErr <- err
+            // cs.ChErr <- err
             // return
             time.Sleep(1000 * time.Millisecond)
             continue
@@ -79,7 +74,7 @@ func (self *LircSocketListener) RunListener(cs *dispatcher.CommandStream) {
             clog.Error("Could not parse %v, not a number?", out[1])
             continue
         }
-        cs.Ch <- &dispatcher.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }
+        cs.Ch <- &commandstream.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }
 
     }
 }

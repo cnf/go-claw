@@ -1,4 +1,4 @@
-package dispatcher
+package commandstream
 
 import "github.com/cnf/go-claw/clog"
 
@@ -65,6 +65,7 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
             if (self.count > 0) {
                 continue
             }
+            clog.Error("Nothing to listen to!")
             return false
         }
     }
