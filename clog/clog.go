@@ -50,27 +50,27 @@ func init() {
 
     cfg = &Config{writer: os.Stderr, loglevel: DEBUG}
     cfgch = make(chan *Config)
-    go runlogger()
+    go runlogger(ch, cfgch)
 }
 
 
-func runlogger() {
+func runlogger(cl chan *clogger, cf chan *Config) {
     var buf []byte
     running := true
     for {
         select {
-        case newcfg, ok := <- cfgch:
+        case newcfg, ok := <- cf:
             if !ok {
                 // Config channel closed? Terminate logger
                 running = false
+                cf = nil
                 continue
             }
-            Debug("Changing logging config: %s, %d", newcfg.writer, newcfg.loglevel)
             if newcfg.writer != nil {
                 cfg.writer = newcfg.writer
             }
             cfg.loglevel = newcfg.loglevel
-        case chn, ok := <- ch:
+        case chn, ok := <- cl:
             if !ok {
                 continue
             }
@@ -92,9 +92,8 @@ func runlogger() {
             if err != nil {
                 // OOPS!
             }
-            if (!running) && (len(ch) == 0) {
+            if (!running) && (len(cl) == 0) {
                 stopch <- true
-                cfgch = nil
                 return
             }
         }
@@ -110,8 +109,12 @@ func SetLogLevel(i int) {
 }
 
 func Stop() {
+    if (cfgch == nil) {
+        return
+    }
     Info("Shutting down logger")
     close(cfgch)
+    cfgch = nil
     <- stopch
     close(stopch)
 }
