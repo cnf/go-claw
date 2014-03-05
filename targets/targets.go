@@ -1,5 +1,5 @@
 package targets
 
 type Targets interface {
-    SendCommand(cmd string, args string) bool
+    SendCommand(cmd string, args ...string) bool
 }

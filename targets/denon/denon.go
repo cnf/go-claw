@@ -20,11 +20,17 @@ func Setup(host string, port int, name string) *Denon {
 
 }
 
-func (self *Denon) SendCommand(cmd string, args string) bool {
-    return true
+func (self *Denon) SendCommand(cmd string, args ...string) bool {
+    switch cmd {
+    case "VolumeUp":
+      return self.socketSend("MVUP")
+    case "Volume":
+      return self.socketSend(fmt.Sprintf("MV%s", args[0]))
+    }
+    return false
 }
 
-func (self *Denon) ssendCommand(str string) bool {
+func (self *Denon) socketSend(str string) bool {
     if self.addr == nil {
         clog.Warn("No address to sent Denon command to.")
         return false
@@ -40,31 +46,3 @@ func (self *Denon) ssendCommand(str string) bool {
     conn.Close()
     return true
 }
-
-func (self *Denon) VolumeUp() {
-    self.ssendCommand("MVUP")
-}
-
-func (self *Denon) Volume(val int) {
-    self.ssendCommand(fmt.Sprintf("MV%d", val))
-}
-
-const jsonStream = `
-{
-  "denon": {
-    "x2000": [
-      {
-        "name": "VolumeUp",
-        "command": "MVUP",
-        "help": "Turn the volume up"
-      },
-      {
-        "name": "Volume",
-        "command": "MV<args>",
-        "args": "int(0:80)",
-        "help": "Set the volume to <args>"
-      }
-    ]
-  }
-}
-`

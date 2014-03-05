@@ -4,6 +4,7 @@ import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/clog"
+import "github.com/cnf/go-claw/setup"
 import "os"
 import "os/signal"
 
@@ -11,6 +12,7 @@ import "os/signal"
 
 func main() {
     defer clog.Stop()
+    setup.Clargs()
     clog.SetLogLevel(clog.DEBUG)
 
     sigc := make(chan os.Signal, 1)
@@ -36,6 +38,6 @@ func main() {
             cs.ClearError()
         }
         dispatcher.Dispatch(&out)
-        // clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
+        clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
     }
 }
