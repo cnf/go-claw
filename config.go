@@ -3,7 +3,6 @@ package main
 import "flag"
 import "io/ioutil"
 import "os/user"
-import "fmt"
 import "runtime"
 import "path/filepath"
 import "github.com/cnf/go-claw/clog"
@@ -23,9 +22,6 @@ type System struct {
     Listeners map[string]map[string]string
 }
 
-var defaultcfgfile string
-// var cfgfile string
-// var cfg string
 var Verbose bool
 
 func init() {
@@ -40,27 +36,27 @@ func init() {
         // different default for windows
     } else {
         cfg.Home, _ = filepath.Abs(usr.HomeDir)
-        defaultcfgfile = fmt.Sprintf("%s/.config/claw/config.json", usr.HomeDir)
+        cfg.cfgfile = filepath.Join(usr.HomeDir, ".config/claw/config.json")
     }
 }
 
 
 func (self *Config) Setup() {
-    tmp := flag.String("conf", defaultcfgfile, "path to our config file.")
-    flag.BoolVar(&Verbose, "v", false, "turn on verbose logging")
+    flag.StringVar(&self.cfgfile, "conf", self.cfgfile, "path to our config file.")
+    flag.BoolVar(&Verbose, "v", Verbose, "turn on verbose logging")
     flag.Parse()
 
-    self.cfgfile, _ = filepath.Abs(*tmp)
-    self.ReadConfigfile()
+    self.cfgfile, _ = filepath.Abs(self.cfgfile)
 }
 
 func (self *Config) ReadConfigfile() {
-    file, ferr := ioutil.ReadFile(defaultcfgfile)
+    clog.Debug("Reading config file: %s", self.cfgfile)
+    file, ferr := ioutil.ReadFile(self.cfgfile)
     if ferr != nil {
-        // OOPS!
+        clog.Error("Failed to open file: %s", ferr.Error())
     }
-    err := json.Unmarshal(file, self.System)
+    err := json.Unmarshal(file, &self.System)
     if err != nil {
-        //OOPS!
+        clog.Error("Failed to parse json data: %s", err.Error())
     }
 }

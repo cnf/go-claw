@@ -11,7 +11,6 @@ import "os/signal"
 
 func main() {
     defer clog.Stop()
-    // clargs.Setup()
 
     sigc := make(chan os.Signal, 1)
     signal.Notify(sigc, os.Interrupt)
@@ -20,6 +19,9 @@ func main() {
         clog.Stop()
         os.Exit(1)
     }()
+
+    cfg.Setup()
+    cfg.ReadConfigfile()
 
     // if Verbose {
     //     clog.SetLogLevel(clog.DEBUG)
@@ -34,7 +36,7 @@ func main() {
     cs.AddListener(&listeners.LircSocketListener{Path: "/var/run/lirc/lircd"})
     cs.AddListener(&listeners.LircSocketListener{Path: "/tmp/echo.sock"})
 
-    dispatcher.Setup()
+    dispatcher.Setup(cfg.System.Targets)
 
     for cs.Next(&out) {
         if cs.HasError() {

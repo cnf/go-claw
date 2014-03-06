@@ -60,6 +60,7 @@ func runlogger(cl chan *clogger, cf chan *Config) {
     for {
         select {
         case newcfg, ok := <- cf:
+            println("changing config")
             if !ok {
                 // Config channel closed? Terminate logger
                 running = false

@@ -8,8 +8,11 @@ import "github.com/cnf/go-claw/clog"
 var mydenon *denon.Denon
 var targetmap map[string]targets.Targets
 
-func Setup() {
+func Setup(t map[string]map[string]string) {
     targetmap = make(map[string]targets.Targets)
+    for key, _ := range t {
+        println(key)
+    }
     targetmap["mydenon"] = denon.Setup("192.168.178.58", 23, "X2000")
 }
 
