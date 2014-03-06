@@ -4,7 +4,6 @@ import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/clog"
-import "github.com/cnf/go-claw/setup"
 import "os"
 import "os/signal"
 
@@ -12,8 +11,7 @@ import "os/signal"
 
 func main() {
     defer clog.Stop()
-    setup.Clargs()
-    clog.SetLogLevel(clog.DEBUG)
+    // clargs.Setup()
 
     sigc := make(chan os.Signal, 1)
     signal.Notify(sigc, os.Interrupt)
@@ -22,6 +20,12 @@ func main() {
         clog.Stop()
         os.Exit(1)
     }()
+
+    // if Verbose {
+    //     clog.SetLogLevel(clog.DEBUG)
+    // } else {
+    //     clog.SetLogLevel(clog.WARN)
+    // }
 
     cs := commandstream.NewCommandStream()
     defer cs.Close()
