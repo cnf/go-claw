@@ -51,6 +51,7 @@ func (self *Config) Setup() {
     flag.Parse()
 
     self.cfgfile, _ = filepath.Abs(*tmp)
+    self.ReadConfigfile()
 }
 
 func (self *Config) ReadConfigfile() {
