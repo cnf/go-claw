@@ -8,6 +8,7 @@ import "strconv"
 import "time"
 
 import "github.com/cnf/go-claw/commandstream"
+import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/clog"
 
 type LircSocketListener struct {
@@ -17,10 +18,10 @@ type LircSocketListener struct {
 }
 
 func Register() {
-    commandstream.RegisterListener("lircsocket", Create)
+    listeners.RegisterListener("lircsocket", Create)
 }
 
-func Create(ptype string, params map[string]string) (l commandstream.Listener, ok bool) {
+func Create(ptype string, params map[string]string) (l listeners.Listener, ok bool) {
     // var sl listeners.Listener
     sl := &LircSocketListener{}
     if val, ok := params["path"]; ok {

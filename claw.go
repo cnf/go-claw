@@ -34,14 +34,15 @@ func main() {
     defer cs.Close()
     var out commandstream.RemoteCommand
 
-    // setup.RegisterAllListeners()
-    listeners.RegisterAllListeners()
+    RegisterAllListeners()
     println("DONE!!")
-    commandstream.Testing()
+    listeners.Testing()
     println("DONE!!")
     // listeners.ProcessListenerConfig(cs, cfg.System.Listeners)
     for key, _ := range cfg.System.Listeners {
         println(key)
+        // l := listeners.GetListener()
+        // cs.AddListener()
     }
 
     // cs.AddListener(&listeners.LircSocketListener{Path: "/var/run/lirc/lircd"})
