@@ -1,4 +1,4 @@
-package listeners
+package lircsocket
 
 import "net"
 import "io"
