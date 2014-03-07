@@ -3,6 +3,7 @@ package main
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/dispatcher"
+import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/clog"
 import "os"
 import "os/signal"
@@ -20,10 +21,10 @@ func main() {
         os.Exit(1)
     }()
 
-    cfg.Setup()
+    cfg := setup.Setup()
     cfg.ReadConfigfile()
 
-    if Verbose {
+    if setup.Verbose {
         clog.SetLogLevel(clog.DEBUG)
     } else {
         clog.SetLogLevel(clog.WARN)
@@ -33,8 +34,18 @@ func main() {
     defer cs.Close()
     var out commandstream.RemoteCommand
 
-    cs.AddListener(&listeners.LircSocketListener{Path: "/var/run/lirc/lircd"})
-    cs.AddListener(&listeners.LircSocketListener{Path: "/tmp/echo.sock"})
+    // setup.RegisterAllListeners()
+    listeners.RegisterAllListeners()
+    println("DONE!!")
+    commandstream.Testing()
+    println("DONE!!")
+    // listeners.ProcessListenerConfig(cs, cfg.System.Listeners)
+    for key, _ := range cfg.System.Listeners {
+        println(key)
+    }
+
+    // cs.AddListener(&listeners.LircSocketListener{Path: "/var/run/lirc/lircd"})
+    // cs.AddListener(&listeners.LircSocketListener{Path: "/tmp/echo.sock"})
 
     dispatcher.Setup(cfg.System.Targets)
 

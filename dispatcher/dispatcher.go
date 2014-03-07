@@ -3,15 +3,16 @@ package dispatcher
 import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/targets/denon"
+import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/clog"
 
 var mydenon *denon.Denon
 var targetmap map[string]targets.Targets
 
-func Setup(t map[string]map[string]string) {
+func Setup(t map[string]setup.Target) {
     targetmap = make(map[string]targets.Targets)
-    for key, _ := range t {
-        println(key)
+    for key, value := range t {
+       println(key, value.Module)
     }
     targetmap["mydenon"] = denon.Setup("192.168.178.58", 23, "X2000")
 }

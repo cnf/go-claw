@@ -16,6 +16,23 @@ type LircSocketListener struct {
     reader *bufio.Reader
 }
 
+func Register() {
+    commandstream.RegisterListener("lircsocket", Create)
+}
+
+func Create(ptype string, params map[string]string) (l commandstream.Listener, ok bool) {
+    // var sl listeners.Listener
+    sl := &LircSocketListener{}
+    if val, ok := params["path"]; ok {
+        clog.Warn("Incorrect parameters")
+        // sl := &LircSocketListener{Path: val}
+        sl.Path = val
+    } else {
+        return nil, false
+    }
+    return sl, false
+}
+
 func (self *LircSocketListener) Setup(cs *commandstream.CommandStream) bool {
     clog.Debug("Opening socket: %s", self.Path)
     c, err := net.Dial("unix", self.Path)

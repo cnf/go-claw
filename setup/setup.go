@@ -1,4 +1,4 @@
-package main
+package setup
 
 import "os"
 import "flag"
@@ -8,6 +8,8 @@ import "runtime"
 import "path/filepath"
 import "github.com/cnf/go-claw/clog"
 import "encoding/json"
+
+// import "github.com/cnf/go-claw/listeners/lircsocket"
 
 type Config struct {
     cfgfile string
@@ -54,12 +56,14 @@ func init() {
 }
 
 
-func (self *Config) Setup() {
-    flag.StringVar(&self.cfgfile, "conf", self.cfgfile, "path to our config file.")
+func Setup() (c *Config) {
+    println(cfg.cfgfile)
+    flag.StringVar(&cfg.cfgfile, "conf", cfg.cfgfile, "path to our config file.")
     flag.BoolVar(&Verbose, "v", Verbose, "turn on verbose logging")
     flag.Parse()
 
-    self.cfgfile, _ = filepath.Abs(self.cfgfile)
+    cfg.cfgfile, _ = filepath.Abs(cfg.cfgfile)
+    return &cfg
 }
 
 func (self *Config) ReadConfigfile() {
@@ -77,3 +81,7 @@ func (self *Config) ReadConfigfile() {
         os.Exit(1)
     }
 }
+
+// func RegisterAllListeners() {
+    // lircsocket.Register()
+// }
