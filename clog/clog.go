@@ -65,6 +65,10 @@ func runlogger(cl chan *clogger, cf chan *Config) {
                 // Config channel closed? Terminate logger
                 running = false
                 cf = nil
+                if len(cl) == 0 {
+                    stopch <- true
+                    return
+                }
                 continue
             }
             if newcfg.writer != nil {

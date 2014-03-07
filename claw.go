@@ -23,11 +23,11 @@ func main() {
     cfg.Setup()
     cfg.ReadConfigfile()
 
-    // if Verbose {
-    //     clog.SetLogLevel(clog.DEBUG)
-    // } else {
-    //     clog.SetLogLevel(clog.WARN)
-    // }
+    if Verbose {
+        clog.SetLogLevel(clog.DEBUG)
+    } else {
+        clog.SetLogLevel(clog.WARN)
+    }
 
     cs := commandstream.NewCommandStream()
     defer cs.Close()
