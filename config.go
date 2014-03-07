@@ -1,5 +1,6 @@
 package main
 
+import "os"
 import "flag"
 import "io/ioutil"
 import "os/user"
@@ -17,9 +18,21 @@ type Config struct {
 var cfg Config
 
 type System struct {
-    Modes map[string]map[string][]string
-    Targets map[string]map[string]string
-    Listeners map[string]map[string]string
+    // Modes map[string]map[string][]string `json:"mode"`
+    Listeners map[string]Listener
+    Modes map[string]Mode
+    Targets map[string]Target
+}
+
+type Listener struct {
+    Module string
+    Params map[string]string
+}
+type Mode map[string]Actionlist
+type Actionlist []string
+type Target struct {
+    Module string
+    Params map[string]string
 }
 
 var Verbose bool
@@ -54,9 +67,13 @@ func (self *Config) ReadConfigfile() {
     file, ferr := ioutil.ReadFile(self.cfgfile)
     if ferr != nil {
         clog.Error("Failed to open file: %s", ferr.Error())
+        clog.Stop()
+        os.Exit(1)
     }
     err := json.Unmarshal(file, &self.System)
     if err != nil {
         clog.Error("Failed to parse json data: %s", err.Error())
+        clog.Stop()
+        os.Exit(1)
     }
 }
