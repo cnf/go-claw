@@ -1,9 +1,7 @@
 package listeners
 
-import "github.com/cnf/go-claw/commandstream"
-
 type Listener interface {
-    RunListener(cs *commandstream.CommandStream)
+    RunListener(cs *CommandStream)
 }
 
 type CreateListener func(params map[string]string) (l Listener, ok bool)

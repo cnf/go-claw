@@ -1,6 +1,6 @@
 package dispatcher
 
-import "github.com/cnf/go-claw/commandstream"
+import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/targets/denon"
 import "github.com/cnf/go-claw/setup"
@@ -20,7 +20,7 @@ func Setup(t map[string]setup.Target) {
     // targetmap["mydenon"] = denon.Setup("192.168.178.58", 23, "X2000")
 }
 
-func Dispatch(rc *commandstream.RemoteCommand) bool {
+func Dispatch(rc *listeners.RemoteCommand) bool {
     clog.Debug("repeat: %2d - key: %s - source: %s", rc.Repeat, rc.Key, rc.Source)
     if rc.Key == "KEY_VOLUMEUP" {
         targetmap["myX2000"].SendCommand("VolumeUp")

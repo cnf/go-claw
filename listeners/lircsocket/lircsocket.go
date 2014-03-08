@@ -7,7 +7,6 @@ import "bufio"
 import "strconv"
 import "time"
 
-import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/clog"
 
@@ -33,7 +32,7 @@ func Create(params map[string]string) (l listeners.Listener, ok bool) {
     return sl, true
 }
 
-func (self *LircSocketListener) setup(cs *commandstream.CommandStream) bool {
+func (self *LircSocketListener) setup(cs *listeners.CommandStream) bool {
     clog.Debug("Opening socket: %s", self.Path)
     c, err := net.Dial("unix", self.Path)
     // If there is no socket to bind to during setup, we fail.
@@ -46,7 +45,7 @@ func (self *LircSocketListener) setup(cs *commandstream.CommandStream) bool {
     return true
 }
 
-func (self *LircSocketListener) RunListener(cs *commandstream.CommandStream) {
+func (self *LircSocketListener) RunListener(cs *listeners.CommandStream) {
     // var err error
     // self.conn, err = net.Dial("unix", self.Path)
     // if err != nil {
@@ -91,7 +90,7 @@ func (self *LircSocketListener) RunListener(cs *commandstream.CommandStream) {
             clog.Error("Could not parse %v, not a number?", out[1])
             continue
         }
-        cs.Ch <- &commandstream.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }
+        cs.Ch <- &listeners.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }
 
     }
 }

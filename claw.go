@@ -1,7 +1,6 @@
 package main
 
 import "github.com/cnf/go-claw/listeners"
-import "github.com/cnf/go-claw/commandstream"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/clog"
@@ -31,10 +30,11 @@ func main() {
     }
     RegisterAllListeners()
     RegisterAllTargets()
+    // Parse command line
 
-    cs := commandstream.NewCommandStream()
+    cs := listeners.NewCommandStream()
     defer cs.Close()
-    var out commandstream.RemoteCommand
+    var out listeners.RemoteCommand
 
     for key, val := range cfg.System.Listeners {
         l, ok := listeners.GetListener(val.Module, val.Params)
