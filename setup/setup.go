@@ -57,7 +57,6 @@ func init() {
 
 
 func Setup() (c *Config) {
-    println(cfg.cfgfile)
     flag.StringVar(&cfg.cfgfile, "conf", cfg.cfgfile, "path to our config file.")
     flag.BoolVar(&Verbose, "v", Verbose, "turn on verbose logging")
     flag.Parse()

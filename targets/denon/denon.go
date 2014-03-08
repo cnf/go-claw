@@ -3,13 +3,27 @@ package denon
 import "net"
 import "fmt"
 import "github.com/cnf/go-claw/clog"
+import "github.com/cnf/go-claw/targets"
 
 type Denon struct {
     name string
     addr *net.TCPAddr
 }
 
-func Setup(host string, port int, name string) *Denon {
+func Register() {
+    targets.RegisterTarget("denon", Create)
+}
+
+func Create(name string, params map[string]string) (t targets.Target, ok bool) {
+    // TODO: VALIDATE PARAMS
+    if val, ok := params["address"]; ok {
+        d := setup(name, val, 23)
+        return d, true
+    }
+    return nil, false
+}
+
+func setup(name string, host string, port int) *Denon {
     clog.Debug("Initializing Denon")
     tmp, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
     if err != nil {
