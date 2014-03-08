@@ -2,18 +2,18 @@ package dispatcher
 
 import "github.com/cnf/go-claw/clog"
 
-var modes map[string]*Mode
+var modes map[string]*mode
 var active int
 
-type Mode struct {
+type mode struct {
     name string
     id int
 }
 
 func init() {
-    modes = make(map[string]*Mode)
-    modes["default"] = &Mode{name: "default", id: 1}
-    modes["bar"] = &Mode{name: "bar", id: 2}
+    modes = make(map[string]*mode)
+    modes["default"] = &mode{name: "default", id: 1}
+    modes["bar"] = &mode{name: "bar", id: 2}
     active = 1
 }
 

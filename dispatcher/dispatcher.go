@@ -2,22 +2,49 @@ package dispatcher
 
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/targets"
-import "github.com/cnf/go-claw/targets/denon"
-import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/clog"
 
-var mydenon *denon.Denon
+type Dispatcher struct {
+    Configfile string
+    config Config
+    cs *listeners.CommandStream
+}
+
+func (self *Dispatcher) Start() {
+    println("Starting")
+    self.cs = listeners.NewCommandStream()
+    defer self.cs.Close()
+
+    self.readConfig()
+
+    for key, _ := range self.config.Listeners {
+        println(key)
+    }
+
+    var out listeners.RemoteCommand
+
+
+    for self.cs.Next(&out) {
+        if self.cs.HasError() {
+            clog.Warn("An error occured somewhere: %v", self.cs.GetError())
+            self.cs.ClearError()
+        }
+        clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
+    }
+}
+
 var targetmap map[string]targets.Target
 
-func Setup(t map[string]setup.Target) {
+
+// func Setup(t map[string]setup.Target) {
+func Setup() {
     targetmap = make(map[string]targets.Target)
-    for key, val := range t {
-       t, ok := targets.GetTarget(val.Module, key, val.Params)
-       if ok {
-           targetmap[key] = t
-       }
-    }
-    // targetmap["mydenon"] = denon.Setup("192.168.178.58", 23, "X2000")
+    // for key, val := range t {
+    //    t, ok := targets.GetTarget(val.Module, key, val.Params)
+    //    if ok {
+    //        targetmap[key] = t
+    //    }
+    // }
 }
 
 func Dispatch(rc *listeners.RemoteCommand) bool {
