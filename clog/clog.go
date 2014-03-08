@@ -76,26 +76,22 @@ func runlogger(cl chan *clogger, cf chan *Config) {
             }
             cfg.loglevel = newcfg.loglevel
         case chn, ok := <- cl:
-            if !ok {
-                continue
-            }
-            if (cfg.writer == nil) || (cfg.loglevel > chn.level) {
-                continue
-            }
-            buf = buf[:0]
+            if ((ok) && (cfg.writer != nil) && (cfg.loglevel <= chn.level)) {
+                buf = buf[:0]
 
-            buf = append(buf, (lvl_names[chn.level] + " - ")... )
-            buf = append(buf, (strings.TrimSpace(chn.message))...)
-            // now := time.Now()
-            // const layout = "Jan 2, 2006 at 3:04pm (MST)"
-            // const layout = time.Stamp
-            // fmt.Printf("%s - %s\n", now.Format(layout), chn.message)
-            if len(buf) > 0 && buf[len(buf)-1] != '\n' {
-                buf = append(buf, '\n')
-            }
-            _, err := cfg.writer.Write(buf)
-            if err != nil {
-                // OOPS!
+                buf = append(buf, (lvl_names[chn.level] + " - ")... )
+                buf = append(buf, (strings.TrimSpace(chn.message))...)
+                // now := time.Now()
+                // const layout = "Jan 2, 2006 at 3:04pm (MST)"
+                // const layout = time.Stamp
+                // fmt.Printf("%s - %s\n", now.Format(layout), chn.message)
+                if len(buf) > 0 && buf[len(buf)-1] != '\n' {
+                    buf = append(buf, '\n')
+                }
+                _, err := cfg.writer.Write(buf)
+                if err != nil {
+                    // OOPS!
+                }
             }
             if (!running) && (len(cl) == 0) {
                 stopch <- true
@@ -106,7 +102,9 @@ func runlogger(cl chan *clogger, cf chan *Config) {
 }
 
 func Setup(c *Config) {
-    cfgch <- c
+    if (cfgch != nil) {
+        cfgch <- c
+    }
 }
 
 func SetLogLevel(i int) {
