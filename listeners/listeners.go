@@ -2,14 +2,13 @@ package listeners
 
 // import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/commandstream"
-import "fmt"
+// import "fmt"
 
 type Listener interface {
-    Setup(cs *commandstream.CommandStream) bool
     RunListener(cs *commandstream.CommandStream)
 }
 
-type CreateListener func(ptype string, params map[string]string) (l Listener, ok bool)
+type CreateListener func(params map[string]string) (l Listener, ok bool)
 
 var list = make(map[string]CreateListener, 5)
 
@@ -17,17 +16,20 @@ func RegisterListener(name string, creator CreateListener) {
     list[name] = creator
 }
 
-func Testing() {
-    for key, value := range list {
-        fmt.Printf("%s -> %# v\n", key, value)
-    }
-}
+// func Testing() {
+//     for key, value := range list {
+//         fmt.Printf("%s -> %# v\n", key, value)
+//     }
+// }
 
-func GetListener(name string) (l Listener, ok bool) {
-    // if val,ok := list[name]; ok {
-        // l = val()
-        // return val, true
-    // }
+func GetListener(name string, params map[string]string) (l Listener, ok bool) {
+    if _, ok := list[name]; ok {
+        println(name, "exists")
+        return list[name](params)
+        // l := val(params)
+        // return l, true
+    }
+    println(name, "does not exist")
     return nil, false
 }
 

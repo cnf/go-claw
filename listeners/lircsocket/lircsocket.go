@@ -21,20 +21,19 @@ func Register() {
     listeners.RegisterListener("lircsocket", Create)
 }
 
-func Create(ptype string, params map[string]string) (l listeners.Listener, ok bool) {
-    // var sl listeners.Listener
+func Create(params map[string]string) (l listeners.Listener, ok bool) {
+    // TODO: VALIDATE PARAMS
     sl := &LircSocketListener{}
     if val, ok := params["path"]; ok {
-        clog.Warn("Incorrect parameters")
-        // sl := &LircSocketListener{Path: val}
         sl.Path = val
     } else {
+        clog.Warn("Incorrect parameters")
         return nil, false
     }
-    return sl, false
+    return sl, true
 }
 
-func (self *LircSocketListener) Setup(cs *commandstream.CommandStream) bool {
+func (self *LircSocketListener) setup(cs *commandstream.CommandStream) bool {
     clog.Debug("Opening socket: %s", self.Path)
     c, err := net.Dial("unix", self.Path)
     // If there is no socket to bind to during setup, we fail.
@@ -54,7 +53,7 @@ func (self *LircSocketListener) RunListener(cs *commandstream.CommandStream) {
         // cs.ChErr <- err
         // return
     // }
-    if (!self.Setup(cs)) {
+    if (!self.setup(cs)) {
         cs.Fatal = true
         return
     }
@@ -70,7 +69,7 @@ func (self *LircSocketListener) RunListener(cs *commandstream.CommandStream) {
                 time.Sleep(1000 * time.Millisecond)
                 // var err error
                 // self.conn, err = net.Dial("unix", self.Path)
-                if (!self.Setup(cs)) {
+                if (!self.setup(cs)) {
                     time.Sleep(3000 * time.Millisecond)
                     continue
                 }

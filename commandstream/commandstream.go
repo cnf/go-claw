@@ -45,6 +45,7 @@ func (self *CommandStream) ClearError() {
 
 func (self *CommandStream) Next(cmd *RemoteCommand) bool {
     if (self.count <= 0) {
+        clog.Debug("No listeners, shutting down")
         return false
     }
     for {
@@ -59,6 +60,7 @@ func (self *CommandStream) Next(cmd *RemoteCommand) bool {
         case err := <- self.ChErr:
             self.err = err
             if (self.Fatal) {
+                clog.Debug("Fatal error, listener shutting down")
                 self.count--
             }
             clog.Error("Listener exited and reported an error: %v", err)

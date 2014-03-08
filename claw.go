@@ -2,7 +2,7 @@ package main
 
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/commandstream"
-import "github.com/cnf/go-claw/dispatcher"
+// import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/clog"
 import "os"
@@ -35,27 +35,26 @@ func main() {
     var out commandstream.RemoteCommand
 
     RegisterAllListeners()
-    println("DONE!!")
-    listeners.Testing()
-    println("DONE!!")
     // listeners.ProcessListenerConfig(cs, cfg.System.Listeners)
-    for key, _ := range cfg.System.Listeners {
-        println(key)
-        // l := listeners.GetListener()
-        // cs.AddListener()
+    for key, val := range cfg.System.Listeners {
+        l, ok := listeners.GetListener(val.Module, val.Params)
+        if ok {
+            clog.Debug("Setting up listener `%s`", key)
+            cs.AddListener(l)
+        }
     }
 
     // cs.AddListener(&listeners.LircSocketListener{Path: "/var/run/lirc/lircd"})
     // cs.AddListener(&listeners.LircSocketListener{Path: "/tmp/echo.sock"})
 
-    dispatcher.Setup(cfg.System.Targets)
+    // dispatcher.Setup(cfg.System.Targets)
 
     for cs.Next(&out) {
         if cs.HasError() {
             clog.Warn("An error occured somewhere: %v", cs.GetError())
             cs.ClearError()
         }
-        dispatcher.Dispatch(&out)
+        // dispatcher.Dispatch(&out)
         clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
     }
 }
