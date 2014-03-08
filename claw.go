@@ -26,16 +26,16 @@ func main() {
         os.Exit(1)
     }()
 
+    setup()
     if verbose {
         clog.SetLogLevel(clog.DEBUG)
     } else {
         clog.SetLogLevel(clog.WARN)
     }
 
+
     RegisterAllListeners()
     RegisterAllTargets()
-
-    setup()
 
     dispatch := dispatcher.Dispatcher{}
     dispatch.Configfile = cfgfile

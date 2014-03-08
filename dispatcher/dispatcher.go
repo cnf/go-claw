@@ -17,8 +17,13 @@ func (self *Dispatcher) Start() {
 
     self.readConfig()
 
-    for key, _ := range self.config.Listeners {
+    for key, val := range self.config.Listeners {
         println(key)
+        l, ok := listeners.GetListener(val.Module, val.Params)
+        if ok {
+            clog.Debug("Setting up listener `%s`", key)
+            self.cs.AddListener(l)
+        }
     }
 
     var out listeners.RemoteCommand

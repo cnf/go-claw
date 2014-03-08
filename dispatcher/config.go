@@ -8,21 +8,21 @@ package dispatcher
 
 type Config struct {
     // Modes map[string]map[string][]string `json:"mode"`
-    Listeners map[string]Listener
-    Modes map[string]Mode
-    Targets map[string]Target
+    Listeners map[string]ConfigListener
+    Modes map[string]ConfigMode
+    Targets map[string]ConfigTarget
 }
 
-type Listener struct {
+type ConfigListener struct {
     Module string
     Params map[string]string
 }
 
-type Mode map[string]Actionlist
+type ConfigMode map[string]Actionlist
 
 type Actionlist []string
 
-type Target struct {
+type ConfigTarget struct {
     Module string
     Params map[string]string
 }

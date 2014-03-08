@@ -6,8 +6,6 @@ import "encoding/json"
 
 import "github.com/cnf/go-claw/clog"
 
-import "github.com/kr/pretty"
-
 func (self *Dispatcher) readConfig() {
     clog.Debug("Reading config file: %s", self.Configfile)
     file, ferr := ioutil.ReadFile(self.Configfile)
@@ -21,5 +19,4 @@ func (self *Dispatcher) readConfig() {
     if err != nil {
         clog.Error("Failed to parse json data: %s", err.Error())
     }
-    pretty.Print(self.config)
 }
