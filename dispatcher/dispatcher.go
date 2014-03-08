@@ -4,18 +4,22 @@ import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/clog"
 
+import "github.com/kr/pretty"
+
 type Dispatcher struct {
     Configfile string
     config Config
     listenermap map[string]*listeners.Listener
     targetmap map[string]targets.Target
-    modemap map[string]*Mode
+    modemap map[string]Mode
+    activemode string
     cs *listeners.CommandStream
 }
 
 func (self *Dispatcher) Start() {
     println("Starting")
     defer self.cs.Close()
+    self.activemode = "default"
     self.readConfig()
     println("================")
     self.setupListeners()
@@ -32,7 +36,7 @@ func (self *Dispatcher) Start() {
             clog.Warn("An error occured somewhere: %v", self.cs.GetError())
             self.cs.ClearError()
         }
-        clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
+        // clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
         self.Dispatch(&out)
     }
 }
@@ -53,9 +57,21 @@ func (self *Dispatcher) setupListeners() {
 }
 
 func (self *Dispatcher) setupModes() {
-    for k, _ := range self.config.Modes {
+    pretty.Print(self.config)
+    self.modemap = make(map[string]Mode)
+    for k, v := range self.config.Modes {
         println(k)
+        self.modemap[k] = Mode{}
+        for kk, kv := range v {
+            println(kk)
+            // klala = make(map[string]Key)
+            for _, av := range kv {
+                println(av)
+            }
+            // self.modemap[k][kk] = klala
+        }
     }
+    pretty.Print(self.modemap)
 }
 
 func (self *Dispatcher) setupTargets() {
@@ -89,10 +105,10 @@ func (self *Dispatcher) Dispatch(rc *listeners.RemoteCommand) bool {
         clog.Debug("sending VolUP to denon")
     } else if rc.Key == "KEY_OK" {
         self.targetmap["myX2000"].SendCommand("Volume", "50")
-        SetMode("bar")
+        // SetMode("bar")
         clog.Debug("sending Vol50 to denon")
     } else if rc.Key == "KEY_PLAY" {
-        clog.Debug("Current mode: %s", GetMode())
+        // clog.Debug("Current mode: %s", GetMode())
     }
     return true
 }
