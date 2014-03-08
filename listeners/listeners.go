@@ -1,5 +1,7 @@
 package listeners
 
+import "github.com/cnf/go-claw/clog"
+
 type Listener interface {
     RunListener(cs *CommandStream)
 }
@@ -14,9 +16,8 @@ func RegisterListener(name string, creator CreateListener) {
 
 func GetListener(name string, params map[string]string) (l Listener, ok bool) {
     if _, ok := list[name]; ok {
-        println(name, "exists")
         return list[name](params)
     }
-    println(name, "does not exist")
+    clog.Warn("Listener `%s` does not exist", name)
     return nil, false
 }
