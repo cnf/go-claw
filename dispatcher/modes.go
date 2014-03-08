@@ -6,12 +6,12 @@ package dispatcher
 var active int
 
 type Mode struct {
-    Keys map[string]Key
+    Keys map[string][]string
 }
 
-type Key []Action
+// type Key []Action
 
-type Action string
+// type Action string
 
 // func init() {
     // modes = make(map[string]*Mode)
