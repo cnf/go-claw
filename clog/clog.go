@@ -110,7 +110,9 @@ func Setup(c *Config) {
 }
 
 func SetLogLevel(i int) {
-    cfgch <- &Config{writer: cfg.writer, loglevel: i}
+    if (i >= DEBUG) && (i <= FATAL) {
+        cfgch <- &Config{writer: cfg.writer, loglevel: i}
+    }
 }
 
 func Stop() {
