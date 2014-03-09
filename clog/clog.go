@@ -5,6 +5,7 @@ import "strings"
 import "io"
 import "os"
 import "time"
+import "sync"
 
 const chsize = 10
 
@@ -30,6 +31,8 @@ var ch chan *clogger
 var cfgch chan *Config
 var stopch chan bool
 var cfg *Config
+
+var lmutex sync.Mutex
 
 type clogger struct {
     message string
@@ -114,6 +117,9 @@ func SetLogLevel(i int) {
 }
 
 func Stop() {
+    lmutex.Lock()
+    defer lmutex.Unlock()
+
     if (cfgch == nil) {
         return
     }

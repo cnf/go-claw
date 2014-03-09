@@ -21,13 +21,9 @@ func (self *Dispatcher) Start() {
     self.activemode = "default"
     self.activemode = "spotify"
     self.readConfig()
-    println("================")
     self.setupListeners()
-    println("================")
     self.setupModes()
-    println("================")
     self.setupTargets()
-    println("================")
 
     var out listeners.RemoteCommand
 
@@ -59,16 +55,13 @@ func (self *Dispatcher) setupListeners() {
 func (self *Dispatcher) setupModes() {
     self.modemap = make(map[string]*Mode)
     for k, v := range self.config.Modes {
-        println(k)
         self.modemap[k] = &Mode{Keys: make(map[string][]string)}
         for kk, kv := range v {
-            println(kk)
             self.modemap[k].Keys[kk] = make([]string, len(kv))
             i := 0
             for _, av := range kv {
                 self.modemap[k].Keys[kk][i] = av
                 i++
-                println(av)
             }
         }
     }
@@ -81,7 +74,6 @@ func (self *Dispatcher) setupTargets() {
         if ok {
             self.targetmap[k] = t
         }
-        println(k)
     }
 }
 
