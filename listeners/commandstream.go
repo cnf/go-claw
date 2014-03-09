@@ -1,4 +1,4 @@
-package listeners 
+package listeners
 
 import "github.com/cnf/go-claw/clog"
 
@@ -20,6 +20,9 @@ func (self *CommandStream) Count() int {
 }
 
 func (self *CommandStream) Close() {
+    if self == nil {
+        return
+    }
     close(self.Ch)
     close(self.ChErr)
 }
