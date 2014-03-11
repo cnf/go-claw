@@ -78,19 +78,6 @@ func (self *Dispatcher) setupTargets() {
     }
 }
 
-
-
-// func Setup(t map[string]setup.Target) {
-// func Setup() {
-    // targetmap = make(map[string]targets.Target)
-    // for key, val := range t {
-    //    t, ok := targets.GetTarget(val.Module, key, val.Params)
-    //    if ok {
-    //        targetmap[key] = t
-    //    }
-    // }
-// }
-
 func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     clog.Debug("repeat: %2d - key: %s - source: %s", rc.Repeat, rc.Key, rc.Source)
     var mod string
@@ -98,27 +85,29 @@ func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     var args string
     var rok bool
     if val, ok := self.modemap[self.activemode].Keys[rc.Key]; ok {
-        println("FOUND!")
-        mod, cmd, args, rok = self.resolve(val[0])
+        clog.Debug("FOUND in %s", self.activemode)
+        for _, v := range val {
+            clog.Debug(v)
+            mod, cmd, args, rok = self.resolve(v)
+            self.sender(mod, cmd, args)
+        }
+        return true
     } else if val, ok := self.modemap["default"].Keys[rc.Key]; ok {
-        println("FOUND in default!")
-        mod, cmd, args, rok = self.resolve(val[0])
+        clog.Debug("FOUND in default!")
+        for _, v := range val {
+            clog.Debug(v)
+            mod, cmd, args, rok = self.resolve(v)
+            self.sender(mod, cmd, args)
+        }
+        return true
     } else {
-        println("Not found")
+        clog.Debug("Not found")
         return false
     }
     if !rok {
         return false
     }
 
-    if t, ok := self.targetmap[mod]; ok {
-        println(cmd)
-        sok := t.SendCommand(cmd, args)
-        if sok {
-            clog.Debug("Send command %# v", sok)
-        }
-        return true
-    }
     return true
 }
 
@@ -137,3 +126,15 @@ func (self *Dispatcher) resolve(input string) (mod string, cmd string, args stri
 
     return foo[0], bar[0], baz, true
 }
+
+func (self *Dispatcher) sender(mod string, cmd string, args string) bool {
+    if t, ok := self.targetmap[mod]; ok {
+        sok := t.SendCommand(cmd, args)
+        if sok {
+            clog.Debug("Sent command %# v", sok)
+        }
+        return true
+    }
+    return false
+}
+
