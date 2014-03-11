@@ -73,6 +73,7 @@ func (self *Dispatcher) setupTargets() {
         t, ok := targets.GetTarget(v.Module, k, v.Params)
         if ok {
             self.targetmap[k] = t
+            println(k)
         }
     }
 }
@@ -94,38 +95,45 @@ func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     clog.Debug("repeat: %2d - key: %s - source: %s", rc.Repeat, rc.Key, rc.Source)
     var mod string
     var cmd string
+    var args string
+    var rok bool
     if val, ok := self.modemap[self.activemode].Keys[rc.Key]; ok {
         println("FOUND!")
-        mod, cmd = self.resolve(val[0])
+        mod, cmd, args, rok = self.resolve(val[0])
     } else if val, ok := self.modemap["default"].Keys[rc.Key]; ok {
         println("FOUND in default!")
-        mod, cmd = self.resolve(val[0])
+        mod, cmd, args, rok = self.resolve(val[0])
     } else {
         println("Not found")
+        return false
+    }
+    if !rok {
         return false
     }
 
     if t, ok := self.targetmap[mod]; ok {
         println(cmd)
-        t.SendCommand(cmd)
+        sok := t.SendCommand(cmd, args)
+        if sok {
+            clog.Debug("Send command %# v", sok)
+        }
         return true
     }
-
-    // if rc.Key == "KEY_VOLUMEUP" {
-    //     self.targetmap["myX2000"].SendCommand("VolumeUp")
-    //     clog.Debug("sending VolUP to denon")
-    // } else if rc.Key == "KEY_OK" {
-    //     self.targetmap["myX2000"].SendCommand("Volume", "50")
-    //     // SetMode("bar")
-    //     clog.Debug("sending Vol50 to denon")
-    // } else if rc.Key == "KEY_PLAY" {
-    //     // clog.Debug("Current mode: %s", GetMode())
-    // }
     return true
 }
 
-func (self *Dispatcher) resolve(input string) (mod string, cmd string) {
-    foo := strings.Split(input, ":")
-    println(foo[0], foo[1])
-    return foo[0], foo[1]
+func (self *Dispatcher) resolve(input string) (mod string, cmd string, args string, ok bool) {
+    clog.Debug("Resolving input for %s", input)
+    foo := strings.SplitN(input, "::", 2)
+    if len(foo) < 2 {
+        clog.Warn("%s is not a well formed command", input)
+        return "", "", "", false
+    }
+    bar := strings.SplitN(foo[1], " ", 2)
+    baz := ""
+    if len(bar) > 1 {
+        baz = bar[1]
+    }
+
+    return foo[0], bar[0], baz, true
 }

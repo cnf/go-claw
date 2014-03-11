@@ -38,6 +38,8 @@ func (self *Denon) SendCommand(cmd string, args ...string) bool {
     switch cmd {
     case "VolumeUp":
       return self.socketSend("MVUP")
+    case "VolumeDown":
+      return self.socketSend("MVDOWN")
     case "Volume":
       return self.socketSend(fmt.Sprintf("MV%s", args[0]))
     }
@@ -53,7 +55,9 @@ func (self *Denon) socketSend(str string) bool {
     // defer conn.Close()
     if err != nil {
         clog.Error("Connection failed: %s", err)
-        defer conn.Close()
+        if conn != nil {
+            conn.Close()
+        }
         return false
     }
     fmt.Fprintf(conn, "%s\r", str)

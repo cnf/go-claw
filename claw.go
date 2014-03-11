@@ -44,9 +44,13 @@ func main() {
 }
 
 func setup() {
+    var home string
     usr, uerr := user.Current()
     if uerr != nil {
-        clog.Fatal( uerr.Error() )
+        clog.Warn( uerr.Error() )
+        home = os.ExpandEnv("$HOME")
+    } else {
+        home = usr.HomeDir
     }
 
     if runtime.GOOS == "windows" {
@@ -54,7 +58,7 @@ func setup() {
         // TODO: Different defaults for windows
     } else {
         // cfg.Home, _ = filepath.Abs(usr.HomeDir)
-        cfgfile = filepath.Join(usr.HomeDir, ".config/claw/config.json")
+        cfgfile = filepath.Join(home, ".config/claw/config.json")
     }
     flag.StringVar(&cfgfile, "conf", cfgfile, "path to our config file.")
     flag.BoolVar(&verbose, "v", verbose, "turn on verbose logging")
