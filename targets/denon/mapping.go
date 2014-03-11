@@ -2,6 +2,7 @@ package denon
 
 import "fmt"
 import "strconv"
+import "errors"
 
 // commanders[cmd].Command(cmd, args...)
 
@@ -33,7 +34,7 @@ func (self RangeCommand) Command(args ...string) (string, error) {
     if (int(vol) >= self.Min) && (int(vol) <= self.Max) {
         return fmt.Sprintf(self.Send, vol), nil
     }
-    return "", nil
+    return "", errors.New("Could not construct denon command")
 }
 
 func (self VolumeCommand) Command(args ...string) (string, error) {
@@ -43,7 +44,7 @@ func (self VolumeCommand) Command(args ...string) (string, error) {
         i := percentageOfRange(int(vol), self.Min, self.Max)
         return fmt.Sprintf(self.Send, i), nil
     }
-    return "", nil
+    return "", errors.New("Could not construct denon command")
 }
 
 func percentageOfRange(pct int, min int, max int) int {

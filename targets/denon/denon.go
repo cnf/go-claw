@@ -59,6 +59,10 @@ func (self *Denon) SendCommand(cmd string, args ...string) bool {
     return false
 }
 
+func (self *Denon) Capabilities() []string {
+    return []string{}
+}
+
 func (self *Denon) socketSend(str string) bool {
     if self.addr == nil {
         clog.Warn("No address to sent Denon command to.")
