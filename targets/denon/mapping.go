@@ -15,13 +15,19 @@ type PlainCommand struct {
 }
 
 type RangeCommand struct {
-    Send     string
+    Send string
     Min, Max int
 }
 
 type VolumeCommand struct {
     Send string
     Min, Max int
+}
+
+type ToggleCommand struct {
+    Query string
+    OnString string
+    OffString string
 }
 
 func (self PlainCommand) Command(args ...string) (string, error) {
@@ -45,6 +51,11 @@ func (self VolumeCommand) Command(args ...string) (string, error) {
         return fmt.Sprintf(self.Send, i), nil
     }
     return "", errors.New("Could not construct denon command")
+}
+
+func (self ToggleCommand) Command(args ...string) (string, error) {
+    // compare stuff here
+    return "", errors.New("Could not toggle")
 }
 
 func percentageOfRange(pct int, min int, max int) int {

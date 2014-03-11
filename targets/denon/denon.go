@@ -38,22 +38,16 @@ func setup(name string, host string, port int) *Denon {
 
 func (self *Denon) SendCommand(cmd string, args ...string) bool {
     switch cmd {
-    // case "VolumeUp":
-    //   return self.socketSend("MVUP")
-    // case "VolumeDown":
-    //   return self.socketSend("MVDOWN")
-    // case "Volume":
-      // return self.socketSend(fmt.Sprintf("MV%s", args[0]))
     default:
         clog.Debug("Looking up %s in the map", cmd)
         // clog.Debug(">>>>>>>>> %# v", self.commands)
         if val, ok := self.commands[cmd]; ok {
-            cmd, err := val.Command(args...)
+            cstr, err := val.Command(args...)
             if err != nil {
                 return false
             }
-            clog.Debug(">>>>>>>>> %# v", cmd)
-            // return self.socketSend(val.command["send"])
+            clog.Debug(">>>>>>>>> %# v", cstr)
+            return self.socketSend(cstr)
         }
     }
     return false
@@ -69,7 +63,6 @@ func (self *Denon) socketSend(str string) bool {
         return false
 }
     conn, err := net.DialTCP("tcp", nil, self.addr)
-    // defer conn.Close()
     if err != nil {
         clog.Error("Connection failed: %s", err)
         if conn != nil {
@@ -77,20 +70,8 @@ func (self *Denon) socketSend(str string) bool {
         }
         return false
     }
+    clog.Debug("Sending %s to %s", str, self.name)
     fmt.Fprintf(conn, "%s\r", str)
     conn.Close()
     return true
 }
-
-// var commands map[string]command
-// 
-// type Cmd struct {
-//     Send string
-//     Args []string
-// }
-// 
-// 
-// type command struct {
-//     send string
-//     params []string
-// }

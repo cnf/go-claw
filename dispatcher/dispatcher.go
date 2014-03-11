@@ -19,7 +19,7 @@ type Dispatcher struct {
 func (self *Dispatcher) Start() {
     defer self.cs.Close()
     self.activemode = "default"
-    self.activemode = "spotify"
+    self.activemode = "plex"
     self.readConfig()
     self.setupListeners()
     self.setupModes()
