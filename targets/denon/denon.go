@@ -2,6 +2,8 @@ package denon
 
 import "net"
 import "fmt"
+import "time"
+
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/targets"
 
@@ -9,6 +11,8 @@ type Denon struct {
     name string
     addr *net.TCPAddr
     commands map[string]Commander
+    last time.Time
+    wait time.Duration
 }
 
 func Register() {
@@ -20,6 +24,7 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
     if val, ok := params["address"]; ok {
         d := setup(name, val, 23)
         d.commands = AVRX2000
+        d.wait = time.Duration(100 * time.Millisecond)
         return d, true
     }
     return nil, false
@@ -61,7 +66,13 @@ func (self *Denon) socketSend(str string) bool {
     if self.addr == nil {
         clog.Warn("No address to sent Denon command to.")
         return false
-}
+    }
+
+    if time.Since(self.last) < self.wait {
+        clog.Debug("+++++ Waiting %# v", self.wait)
+        time.Sleep(self.wait)
+    }
+
     conn, err := net.DialTCP("tcp", nil, self.addr)
     if err != nil {
         clog.Error("Connection failed: %s", err)
@@ -73,5 +84,6 @@ func (self *Denon) socketSend(str string) bool {
     clog.Debug("Sending %s to %s", str, self.name)
     fmt.Fprintf(conn, "%s\r", str)
     conn.Close()
+    self.last = time.Now()
     return true
 }
