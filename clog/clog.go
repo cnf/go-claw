@@ -5,7 +5,6 @@ import "strings"
 import "io"
 import "os"
 import "time"
-import "sync"
 
 const chsize = 10
 
@@ -27,17 +26,15 @@ var lvl_names = [...]string{
     "FATAL",
 }
 
-var ch chan *clogger
-var cfgch chan *Config
-var stopch chan bool
-var cfg *Config
-
-var lmutex sync.Mutex
+var ch = make(chan *clogger, chsize)
+var cfgch = make(chan *Config)
+var stopch = make(chan bool)
+var cfg = &Config{writer: os.Stderr, loglevel: DEBUG}
 
 type clogger struct {
     message string
-    level int
-    time time.Time
+    level   int
+    time    time.Time
     // err error
     // source string
 }
@@ -48,66 +45,44 @@ type Config struct {
 }
 
 func init() {
-    ch = make(chan *clogger, chsize)
-    stopch = make(chan bool)
-
-    cfg = &Config{writer: os.Stderr, loglevel: DEBUG}
-    cfgch = make(chan *Config)
     go runlogger(ch, cfgch)
 }
 
-
 func runlogger(cl chan *clogger, cf chan *Config) {
     var buf []byte
-    running := true
+    defer close(stopch)
     for {
         select {
-        case newcfg, ok := <- cf:
+        case newcfg := <-cf:
             println("changing config")
-            if !ok {
-                // Config channel closed? Terminate logger
-                running = false
-                cf = nil
-                if len(cl) == 0 {
-                    stopch <- true
-                    return
-                }
-                continue
-            }
             if newcfg.writer != nil {
                 cfg.writer = newcfg.writer
             }
             cfg.loglevel = newcfg.loglevel
-        case chn, ok := <- cl:
-            if ((ok) && (cfg.writer != nil) && (cfg.loglevel <= chn.level)) {
-                buf = buf[:0]
-
-                buf = append(buf, (lvl_names[chn.level] + " - ")... )
-                buf = append(buf, (strings.TrimSpace(chn.message))...)
-                // now := time.Now()
-                // const layout = "Jan 2, 2006 at 3:04pm (MST)"
-                // const layout = time.Stamp
-                // fmt.Printf("%s - %s\n", now.Format(layout), chn.message)
-                if len(buf) > 0 && buf[len(buf)-1] != '\n' {
-                    buf = append(buf, '\n')
-                }
-                _, err := cfg.writer.Write(buf)
-                if err != nil {
-                    // OOPS!
-                }
-            }
-            if (!running) && (len(cl) == 0) {
-                stopch <- true
+        case chn, ok := <-cl:
+            if !ok {
                 return
+            }
+            if cfg.writer == nil || cfg.loglevel > chn.level {
+                continue
+            }
+            buf = buf[:0]
+
+            buf = append(buf, (lvl_names[chn.level] + " - ")...)
+            buf = append(buf, (strings.TrimSpace(chn.message))...)
+            if len(buf) > 0 && buf[len(buf)-1] != '\n' {
+                buf = append(buf, '\n')
+            }
+            _, err := cfg.writer.Write(buf)
+            if err != nil {
+                // OOPS!
             }
         }
     }
 }
 
 func Setup(c *Config) {
-    if (cfgch != nil) {
-        cfgch <- c
-    }
+    cfgch <- c
 }
 
 func SetLogLevel(i int) {
@@ -117,17 +92,12 @@ func SetLogLevel(i int) {
 }
 
 func Stop() {
-    lmutex.Lock()
-    defer lmutex.Unlock()
-
-    if (cfgch == nil) {
+    Info("Shutting down logger")
+    close(ch)
+    if cfgch == nil {
         return
     }
-    Info("Shutting down logger")
-    close(cfgch)
-    cfgch = nil
-    <- stopch
-    close(stopch)
+    <-stopch
 }
 
 func Fatal(format string, a ...interface{}) {
