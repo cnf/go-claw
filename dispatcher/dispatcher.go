@@ -85,7 +85,7 @@ func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     var args string
     var rok bool
     if val, ok := self.modemap[self.activemode].Keys[rc.Key]; ok {
-        clog.Debug("FOUND in %s", self.activemode)
+        clog.Debug("+ Found `%s` in %s", rc.Key, self.activemode)
         for _, v := range val {
             clog.Debug(v)
             mod, cmd, args, rok = self.resolve(v)
@@ -93,15 +93,14 @@ func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
         }
         return true
     } else if val, ok := self.modemap["default"].Keys[rc.Key]; ok {
-        clog.Debug("FOUND in default!")
+        clog.Debug("+ Found `%s` in default!", rc.Key)
         for _, v := range val {
-            clog.Debug(v)
             mod, cmd, args, rok = self.resolve(v)
             self.sender(mod, cmd, args)
         }
         return true
     } else {
-        clog.Debug("Not found")
+        clog.Debug("+ `%s` Not found.")
         return false
     }
     if !rok {
@@ -112,7 +111,7 @@ func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
 }
 
 func (self *Dispatcher) resolve(input string) (mod string, cmd string, args string, ok bool) {
-    clog.Debug("Resolving input for %s", input)
+    clog.Debug("++ Resolving input for %s", input)
     foo := strings.SplitN(input, "::", 2)
     if len(foo) < 2 {
         clog.Warn("%s is not a well formed command", input)
@@ -128,13 +127,29 @@ func (self *Dispatcher) resolve(input string) (mod string, cmd string, args stri
 }
 
 func (self *Dispatcher) sender(mod string, cmd string, args string) bool {
+    if mod == "mode" {
+        clog.Debug("++++ %s - %s", mod, cmd)
+        return self.setMode(cmd)
+    }
     if t, ok := self.targetmap[mod]; ok {
         sok := t.SendCommand(cmd, args)
-        if sok {
-            clog.Debug("Sent command %# v", sok)
+        if !sok {
+            clog.Debug("- Failed to send command `%s` for `%s`", cmd, mod)
         }
         return true
     }
     return false
 }
 
+func (self *Dispatcher) setMode(mode string) bool {
+    if _, ok := self.modemap[mode]; ok {
+        clog.Debug("+ Mode changed to `%s`", mode)
+        self.activemode = mode
+    } else {
+        for k, _ := range self.modemap {
+            clog.Debug("---- %s", k)
+        }
+        return false
+    }
+    return true
+}
