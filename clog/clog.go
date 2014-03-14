@@ -54,7 +54,10 @@ func runlogger(cl chan *clogger, cf chan *Config) {
     for {
         select {
         case newcfg := <-cf:
-            println("changing config")
+            if newcfg == nil {
+                // Error reading from config channel -> Abort
+                return
+            }
             if newcfg.writer != nil {
                 cfg.writer = newcfg.writer
             }
@@ -82,40 +85,61 @@ func runlogger(cl chan *clogger, cf chan *Config) {
 }
 
 func Setup(c *Config) {
+    if cfgch == nil {
+        return
+    }
     cfgch <- c
 }
 
 func SetLogLevel(i int) {
+    if cfgch == nil {
+        return
+    }
     if (i >= DEBUG) && (i <= FATAL) {
-        cfgch <- &Config{writer: cfg.writer, loglevel: i}
+        cfgch <- &Config{writer: nil, loglevel: i}
     }
 }
 
 func Stop() {
     Info("Shutting down logger")
-    close(ch)
-    if cfgch == nil {
+    if (ch != nil) {
+        close(ch)
+        ch = nil
+    }
+    // Wait for goroutine to exit
+    <-stopch
+
+    // Now kill the config channel
+    if (cfgch != nil) {
+        close(cfgch)
+        cfgch = nil
+    }
+}
+
+func dolog(l *clogger) {
+    if (ch == nil) {
         return
     }
-    <-stopch
+    ch <- l
 }
 
 func Fatal(format string, a ...interface{}) {
-    ch <- &clogger{message: fmt.Sprintf(format, a...), level: FATAL, time: time.Now()}
+    dolog(&clogger{message: fmt.Sprintf(format, a...), level: FATAL, time: time.Now()})
 }
 
 func Error(format string, a ...interface{}) {
-    ch <- &clogger{message: fmt.Sprintf(format, a...), level: ERROR, time: time.Now()}
+    dolog(&clogger{message: fmt.Sprintf(format, a...), level: ERROR, time: time.Now()})
 }
 
 func Warn(format string, a ...interface{}) {
-    ch <- &clogger{message: fmt.Sprintf(format, a...), level: WARN, time: time.Now()}
+    dolog(&clogger{message: fmt.Sprintf(format, a...), level: WARN, time: time.Now()})
 }
 
 func Info(format string, a ...interface{}) {
-    ch <- &clogger{message: fmt.Sprintf(format, a...), level: INFO, time: time.Now()}
+    dolog(&clogger{message: fmt.Sprintf(format, a...), level: INFO, time: time.Now()})
 }
 
 func Debug(format string, a ...interface{}) {
-    ch <- &clogger{message: fmt.Sprintf(format, a...), level: DEBUG, time: time.Now()}
+    dolog(&clogger{message: fmt.Sprintf(format, a...), level: DEBUG, time: time.Now()})
 }
+
