@@ -19,6 +19,8 @@ var AVRX2000 = map[string]Commander{
     "Input6":     PlainCommand{"SICD"},
     "Input7":     PlainCommand{"SIAUX1"},
     // Zone 2
+    "Z2PowerOn":  PlainCommand{"Z2ON"},
+    "Z2PowerOff": PlainCommand{"Z2OFF"},
     // SD Mode?
     // Select video
     // MS?
