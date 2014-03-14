@@ -54,6 +54,7 @@ func (self *Denon) SendCommand(cmd string, args ...string) bool {
         clog.Debug(">>>>>>>>> %# v", cstr)
         _, serr := self.socketSend(cstr)
         if serr != nil { return false }
+        return true
     }
     return false
 }
