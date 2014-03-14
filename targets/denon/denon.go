@@ -68,9 +68,11 @@ func (self *Denon) socketSend(str string) bool {
         return false
     }
 
-    if time.Since(self.last) < self.wait {
-        clog.Debug("+++++ Waiting %# v", self.wait)
-        time.Sleep(self.wait)
+    tdiff := time.Since(self.last)
+    if tdiff < self.wait {
+        // time.Sleep(self.wait)
+        clog.Debug("+++++ Waiting %# v", self.wait - tdiff)
+        time.Sleep(self.wait - tdiff)
     }
 
     conn, err := net.DialTCP("tcp", nil, self.addr)
