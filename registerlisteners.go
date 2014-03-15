@@ -2,6 +2,6 @@ package main
 
 import "github.com/cnf/go-claw/listeners/lircsocket"
 
-func RegisterAllListeners() {
+func registerAllListeners() {
     lircsocket.Register()
 }

@@ -34,8 +34,8 @@ func main() {
     }
 
 
-    RegisterAllListeners()
-    RegisterAllTargets()
+    registerAllListeners()
+    registerAllTargets()
 
     dispatch := dispatcher.Dispatcher{}
     dispatch.Configfile = cfgfile
