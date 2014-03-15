@@ -101,20 +101,17 @@ func (self *Denon) socketSend(str string) (cmd string, err error) {
     fmt.Fprintf(conn, "%s\r", str)
     reply := make([]byte, 32)
     l, err := conn.Read(reply)
-    if err != nil { return "", err }
     conn.Close()
     self.last = time.Now()
+    if err != nil { return "", err }
     return string(reply[0:l]), nil
 }
 
 func (self *Denon) toggleMute() bool {
     r, err := self.socketSend("MU?")
-    // MuteOn
     if err != nil { return false }
     r = strings.TrimSpace(r)
     clog.Debug("Found: %# v", r)
-    // _, serr := self.socketSend("MU?")
-    // if serr != nil { return false }
     if r == "MUOFF" {
         clog.Debug("MU OFF!")
         cmd, err := self.getCommand("MuteOn")
