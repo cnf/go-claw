@@ -57,7 +57,6 @@ func (self *LircSocketListener) RunListener(cs *listeners.CommandStream) {
         return
     }
     for {
-        now := time.Now()
         str, err := self.reader.ReadString('\n')
         if err != nil {
             if err != io.EOF {
@@ -90,6 +89,7 @@ func (self *LircSocketListener) RunListener(cs *listeners.CommandStream) {
             clog.Error("Could not parse %v, not a number?", out[1])
             continue
         }
+        now := time.Now()
         cs.Ch <- &listeners.RemoteCommand{ Code: out[0], Repeat: int(rpt), Key: out[2], Source: out[3], Time: now }
 
     }
