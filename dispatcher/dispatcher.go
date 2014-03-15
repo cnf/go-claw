@@ -1,6 +1,7 @@
 package dispatcher
 
 import "strings"
+import "time"
 
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/targets"
@@ -9,6 +10,7 @@ import "github.com/cnf/go-claw/clog"
 type Dispatcher struct {
     Configfile string
     config Config
+    keytimeout time.Duration
     listenermap map[string]*listeners.Listener
     targetmap map[string]targets.Target
     modemap map[string]*Mode
@@ -20,6 +22,7 @@ func (self *Dispatcher) Start() {
     defer self.cs.Close()
     self.activemode = "default"
     self.activemode = "plex"
+    self.keytimeout = time.Duration(500 * time.Millisecond) 
     self.readConfig()
     self.setupListeners()
     self.setupModes()
@@ -80,6 +83,11 @@ func (self *Dispatcher) setupTargets() {
 
 func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     clog.Debug("repeat: %2d - key: %s - source: %s", rc.Repeat, rc.Key, rc.Source)
+    tdiff := time.Since(rc.Time)
+    if tdiff > self.keytimeout {
+        clog.Info("Key timeout reached: %# v", tdiff.String())
+        return false
+    }
     var mod string
     var cmd string
     var args string
