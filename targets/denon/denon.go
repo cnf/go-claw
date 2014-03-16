@@ -45,6 +45,8 @@ func setup(name string, host string, port int) *Denon {
 
 func (self *Denon) SendCommand(cmd string, args ...string) bool {
     switch cmd {
+    case "PowerOn":
+        return self.powerOn()
     case "Mute":
         return self.toggleMute()
     default:
@@ -126,5 +128,17 @@ func (self *Denon) toggleMute() bool {
         if serr != nil { return false }
         // _, serr := self.socketSend("MUOFF")
     }
+    return true
+}
+
+func (self *Denon) powerOn() bool {
+    pstr, err := self.getCommand("PowerOn")
+    if err != nil { return false }
+    rtrn, serr := self.socketSend(pstr)
+    if serr != nil { return false }
+    if rtrn != pstr { return false }
+    time.Sleep(3000 * time.Millisecond)
+    // zstr, err := self.getCommand("Z2PowerOff")
+
     return true
 }
