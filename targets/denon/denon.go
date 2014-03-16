@@ -43,31 +43,31 @@ func setup(name string, host string, port int) *Denon {
 
 }
 
-func (self *Denon) SendCommand(cmd string, args ...string) bool {
+func (d *Denon) SendCommand(cmd string, args ...string) bool {
     switch cmd {
     case "PowerOn":
-        return self.powerOn()
+        return d.powerOn()
     case "Mute":
-        return self.toggleMute()
+        return d.toggleMute()
     default:
-        // clog.Debug(">>>>>>>>> %# v", self.commands)
-        cstr, err := self.getCommand(cmd, args...)
+        // clog.Debug(">>>>>>>>> %# v", d.commands)
+        cstr, err := d.getCommand(cmd, args...)
         if err != nil { return false }
         clog.Debug(">>>>>>>>> %# v", cstr)
-        _, serr := self.socketSend(cstr)
+        _, serr := d.socketSend(cstr)
         if serr != nil { return false }
         return true
     }
     return false
 }
 
-func (self *Denon) Capabilities() []string {
+func (d *Denon) Capabilities() []string {
     return []string{}
 }
 
-func (self *Denon) getCommand(cmd string, args ...string) (string, error) {
+func (d *Denon) getCommand(cmd string, args ...string) (string, error) {
     clog.Debug("Looking up %s in the map", cmd)
-    if val, ok := self.commands[cmd]; ok {
+    if val, ok := d.commands[cmd]; ok {
         cstr, err := val.Command(args...)
         if err != nil {
             return "", err
@@ -77,20 +77,20 @@ func (self *Denon) getCommand(cmd string, args ...string) (string, error) {
     return "", errors.New("Could not get command")
 }
 
-func (self *Denon) socketSend(str string) (cmd string, err error) {
-    if self.addr == nil {
+func (d *Denon) socketSend(str string) (cmd string, err error) {
+    if d.addr == nil {
         clog.Warn("No address to sent Denon command to.")
         return "", errors.New("No address set")
     }
 
-    tdiff := time.Since(self.last)
-    if tdiff < self.wait {
-        // time.Sleep(self.wait)
-        clog.Debug("+++++ Waiting %# v", self.wait - tdiff)
-        time.Sleep(self.wait - tdiff)
+    tdiff := time.Since(d.last)
+    if tdiff < d.wait {
+        // time.Sleep(d.wait)
+        clog.Debug("+++++ Waiting %# v", d.wait - tdiff)
+        time.Sleep(d.wait - tdiff)
     }
 
-    conn, err := net.DialTCP("tcp", nil, self.addr)
+    conn, err := net.DialTCP("tcp", nil, d.addr)
     if err != nil {
         clog.Error("Connection failed: %s", err)
         if conn != nil {
@@ -99,46 +99,46 @@ func (self *Denon) socketSend(str string) (cmd string, err error) {
         return "", err
     }
     conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
-    clog.Debug("Sending %s to %s", str, self.name)
+    clog.Debug("Sending %s to %s", str, d.name)
     fmt.Fprintf(conn, "%s\r", str)
     reply := make([]byte, 32)
     l, err := conn.Read(reply)
     conn.Close()
-    self.last = time.Now()
+    d.last = time.Now()
     if err != nil { return "", err }
     return string(reply[0:l]), nil
 }
 
-func (self *Denon) toggleMute() bool {
-    r, err := self.socketSend("MU?")
+func (d *Denon) toggleMute() bool {
+    r, err := d.socketSend("MU?")
     if err != nil { return false }
     r = strings.TrimSpace(r)
     clog.Debug("Found: %# v", r)
     if r == "MUOFF" {
         clog.Debug("MU OFF!")
-        cmd, err := self.getCommand("MuteOn")
+        cmd, err := d.getCommand("MuteOn")
         if err != nil { return false }
-        _, serr := self.socketSend(cmd)
+        _, serr := d.socketSend(cmd)
         if serr != nil { return false }
     } else if r == "MUON" {
         clog.Debug("MU ON!")
-        cmd, err := self.getCommand("MuteOff")
+        cmd, err := d.getCommand("MuteOff")
         if err != nil { return false }
-        _, serr := self.socketSend(cmd)
+        _, serr := d.socketSend(cmd)
         if serr != nil { return false }
-        // _, serr := self.socketSend("MUOFF")
+        // _, serr := d.socketSend("MUOFF")
     }
     return true
 }
 
-func (self *Denon) powerOn() bool {
-    pstr, err := self.getCommand("PowerOn")
+func (d *Denon) powerOn() bool {
+    pstr, err := d.getCommand("PowerOn")
     if err != nil { return false }
-    rtrn, serr := self.socketSend(pstr)
+    rtrn, serr := d.socketSend(pstr)
     if serr != nil { return false }
     if rtrn != pstr { return false }
     time.Sleep(3000 * time.Millisecond)
-    // zstr, err := self.getCommand("Z2PowerOff")
+    // zstr, err := d.getCommand("Z2PowerOff")
 
     return true
 }

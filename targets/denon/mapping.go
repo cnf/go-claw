@@ -30,30 +30,30 @@ type ToggleCommand struct {
     OffString string
 }
 
-func (self PlainCommand) Command(args ...string) (string, error) {
-    return self.Send, nil
+func (d PlainCommand) Command(args ...string) (string, error) {
+    return d.Send, nil
 }
 
-func (self RangeCommand) Command(args ...string) (string, error) {
+func (d RangeCommand) Command(args ...string) (string, error) {
     vol, err := strconv.Atoi(args[0])
     if err != nil {return "", err}
-    if (int(vol) >= self.Min) && (int(vol) <= self.Max) {
-        return fmt.Sprintf(self.Send, vol), nil
+    if (int(vol) >= d.Min) && (int(vol) <= d.Max) {
+        return fmt.Sprintf(d.Send, vol), nil
     }
     return "", errors.New("Could not construct denon command")
 }
 
-func (self VolumeCommand) Command(args ...string) (string, error) {
+func (d VolumeCommand) Command(args ...string) (string, error) {
     vol, err := strconv.Atoi(args[0])
     if err != nil {return "", err}
     if (int(vol) >= 0) && (int(vol) <= 100) {
-        i := percentageOfRange(int(vol), self.Min, self.Max)
-        return fmt.Sprintf(self.Send, i), nil
+        i := percentageOfRange(int(vol), d.Min, d.Max)
+        return fmt.Sprintf(d.Send, i), nil
     }
     return "", errors.New("Could not construct denon command")
 }
 
-func (self ToggleCommand) Command(args ...string) (string, error) {
+func (d ToggleCommand) Command(args ...string) (string, error) {
     // compare stuff here
     return "", errors.New("Could not toggle")
 }
