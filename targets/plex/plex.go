@@ -62,10 +62,30 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
     }
     go p.plexWatcher()
     p.commands = pht
+    // FIXME: generate an actual ID
     p.uuid = "1A5C18A3-C398-4A50-A6CE-FCFDDD7FC1F2"
     p.commandID = 1
     go p.subscribe()
     return p, true
+}
+
+// SendCommand receives the command from the dispatcher
+func (p *Plex) SendCommand(cmd string, args ...string) bool {
+    switch cmd {
+    case "PowerOn":
+        clog.Debug("Powering on Plex")
+        return p.powerOn()
+    default:
+        clog.Debug("Looking up %s in the Plex map", cmd)
+        if val, ok := p.commands[cmd]; ok {
+            path, err := val.command(args...)
+            if err != nil {
+                return false
+            }
+            return p.plexGet(path)
+        }
+    }
+    return false
 }
 
 func (p *Plex) plexWatcher() {
@@ -118,25 +138,6 @@ func (p *Plex) hasCapability(c string) bool {
     return false
 }
 
-// SendCommand receives the command from the dispatcher
-func (p *Plex) SendCommand(cmd string, args ...string) bool {
-    switch cmd {
-    case "PowerOn":
-        clog.Debug("Powering on Plex")
-        return p.powerOn()
-    default:
-        clog.Debug("Looking up %s in the Plex map", cmd)
-        if val, ok := p.commands[cmd]; ok {
-            path, err := val.command(args...)
-            if err != nil {
-                return false
-            }
-            return p.plexGet(path)
-        }
-    }
-    return false
-}
-
 func (p *Plex) plexGet(str string) bool {
     burl := p.getURL()
     if burl == "" {
@@ -155,10 +156,6 @@ func (p *Plex) plexGet(str string) bool {
     }
     resp.Body.Close()
     return true
-}
-
-func dialTimeout(network, addr string) (net.Conn, error) {
-    return net.DialTimeout(network, addr, time.Duration(1 * time.Second))
 }
 
 func (p *Plex) setTimeline(loc string, tls map[string]timelineXML) {
@@ -185,3 +182,8 @@ func (p *Plex) powerOn() bool {
     clog.Debug("Can not power on %s", p.name)
     return false
 }
+
+func dialTimeout(network, addr string) (net.Conn, error) {
+    return net.DialTimeout(network, addr, time.Duration(1 * time.Second))
+}
+
