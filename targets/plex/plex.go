@@ -6,7 +6,8 @@ import "net/http"
 import "time"
 import "sync"
 import "strings"
-// import "net/url"
+import "net/url"
+import "strconv"
 
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/targets"
@@ -145,11 +146,19 @@ func (p *Plex) plexGet(str string) bool {
         return false
     }
     purl := fmt.Sprintf("%s%s", burl, str)
-    // clean, err := url.Parse(purl)
     clog.Debug(">>> Plex get %s", purl)
+    u, _ := url.Parse(purl)
+    q := u.Query()
+    q.Set("commandID", strconv.Itoa(p.getCommandID()))
+    u.RawQuery = q.Encode()
+
+    request, _ := http.NewRequest("GET", u.String(), nil)
+    request.Header.Add("X-Plex-Client-Identifier", p.uuid)
+    request.Header.Add("X-Plex-Device-Name", "Claw")
+
     // FIXME: cleaner timeouts in go1.3
     client := http.Client{ Transport: &http.Transport{Dial: dialTimeout}, }
-    resp, err := client.Get(purl)
+    resp, err := client.Do(request)
     if err != nil {
         clog.Error("FIXME: go1.3 - %s", err.Error())
         return false
@@ -159,9 +168,6 @@ func (p *Plex) plexGet(str string) bool {
 }
 
 func (p *Plex) setTimeline(loc string, tls map[string]timelineXML) {
-    //timelines map[string]timelineXML
-    //location string
-    //tlmu sync.Mutex
     p.tlmu.Lock()
     p.location = loc
     p.timelines = tls

@@ -97,7 +97,7 @@ func (p *Plex) subscriberLoop() {
         request.Header.Add("X-Plex-Client-Identifier", p.uuid)
         request.Header.Add("X-Plex-Device-Name", "Claw")
 
-        // client := &http.Client{}
+        // FIXME: cleaner timeouts in go1.3
         client := &http.Client{ Transport: &http.Transport{Dial: dialTimeout}, }
 
         resp, err := client.Do(request)
