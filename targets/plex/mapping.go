@@ -2,15 +2,16 @@ package plex
 
 import "path"
 
-type Commander interface {
-    Command(args ...string) (string, error)
+//
+type commander interface {
+    command(args ...string) (string, error)
 }
 
-type PlainCommand struct {
+type plainCommand struct {
     Path string
 }
 
-func (self PlainCommand) Command(args ...string) (string, error) {
+func (p plainCommand) command(args ...string) (string, error) {
     // validate path?
-    return path.Clean("/" + self.Path), nil
+    return path.Clean("/" + p.Path), nil
 }

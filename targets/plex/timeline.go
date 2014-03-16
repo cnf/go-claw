@@ -39,25 +39,25 @@ type mediaContainerXML struct {
     Timelines []timelineXML `xml:"Timeline"`
 }
 
-func (self *Plex) subscribe() {
-    go self.listen()
+func (p *Plex) subscribe() {
+    go p.listen()
     time.Sleep(3 * time.Second)
-    go self.subscriberLoop()
+    go p.subscriberLoop()
 }
 
-func (self *Plex) listen() {
-    http.HandleFunc("/", self.handler)
+func (p *Plex) listen() {
+    http.HandleFunc("/", p.handler)
     l, err := net.Listen("tcp", ":0")
     if err != nil { return }
     lport := l.Addr().(*net.TCPAddr).Port
-    self.listenport = lport
+    p.listenport = lport
     clog.Debug("Plex subscription listener on port `%d`", lport)
 
     http.Serve(l, nil)
 }
 
-func (self *Plex) handler(w http.ResponseWriter, r *http.Request) {
-    clog.Debug("Incoming subscription")
+func (p *Plex) handler(w http.ResponseWriter, r *http.Request) {
+    // clog.Debug("Incoming subscription")
     body, rerr := ioutil.ReadAll(r.Body)
     if rerr != nil { return }
     var mc mediaContainerXML
@@ -68,18 +68,18 @@ func (self *Plex) handler(w http.ResponseWriter, r *http.Request) {
     for _, tl := range mc.Timelines {
         tls[tl.Type] = tl
     }
-    self.setTimeline(loc, tls)
+    p.setTimeline(loc, tls)
 }
 
-func (self *Plex) subscriberLoop() {
+func (p *Plex) subscriberLoop() {
     for {
-        burl := self.getUrl()
+        burl := p.getURL()
         if burl == "" {
             // clog.Debug("Plex: no client found to subscribe to")
             time.Sleep(3 * time.Second)
             continue
         }
-        if !self.hasCapability("timeline") {
+        if !p.hasCapability("timeline") {
             // clog.Debug("Plex: Client doesn't support timeline")
             time.Sleep(3 * time.Second)
             continue
@@ -88,13 +88,13 @@ func (self *Plex) subscriberLoop() {
         surl := fmt.Sprintf("%s%s", burl, "/player/timeline/subscribe")
         u, _ := url.Parse(surl)
         q := u.Query()
-        q.Set("commandID", strconv.Itoa(self.getCommandID()))
-        q.Set("port", strconv.Itoa(self.listenport))
+        q.Set("commandID", strconv.Itoa(p.getCommandID()))
+        q.Set("port", strconv.Itoa(p.listenport))
         q.Set("protocol", "http")
         u.RawQuery = q.Encode()
 
         request, _ := http.NewRequest("GET", u.String(), nil)
-        request.Header.Add("X-Plex-Client-Identifier", self.uuid)
+        request.Header.Add("X-Plex-Client-Identifier", p.uuid)
         request.Header.Add("X-Plex-Device-Name", "Claw")
 
         // client := &http.Client{}
@@ -104,10 +104,10 @@ func (self *Plex) subscriberLoop() {
         if err != nil {
             if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
                 clog.Debug("Sub ERR: %s", err.Error())
-                self.mu.Lock()
-                self.url = ""
-                self.capabilities = []string{}
-                self.mu.Unlock()
+                p.mu.Lock()
+                p.url = ""
+                p.capabilities = []string{}
+                p.mu.Unlock()
             } else {
                 clog.Debug("Sub warn: %s", err.Error())
             }

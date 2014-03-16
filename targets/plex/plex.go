@@ -19,7 +19,7 @@ type Plex struct {
     wol string
     cname string
     proto string
-    commands map[string]Commander
+    commands map[string]commander
     capabilities []string
     uuid string
     listenport int
@@ -44,10 +44,12 @@ type Plex struct {
     // Protocol-Version v: 1
 }
 
+// Register this package in the target list
 func Register() {
     targets.RegisterTarget("plex", Create)
 }
 
+// Create a new instance of this target
 func Create(name string, params map[string]string) (t targets.Target, ok bool) {
     clog.Debug("Plex Create called")
     p := &Plex{name: name, }
@@ -59,55 +61,55 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
         p.wol = val
     }
     go p.plexWatcher()
-    p.commands = PHT
+    p.commands = pht
     p.uuid = "1A5C18A3-C398-4A50-A6CE-FCFDDD7FC1F2"
     p.commandID = 1
     go p.subscribe()
     return p, true
 }
 
-func (self *Plex) plexWatcher() {
+func (p *Plex) plexWatcher() {
     w, err := gdm.WatchPlayers(5)
     if err != nil {
         clog.Error("!!!! Can't watch for plex: %s", err.Error())
         return
     }
     for gdm := range w.Watch {
-        if gdm.Props["Name"] != self.cname {
+        if gdm.Props["Name"] != p.cname {
             continue
         }
-        url := fmt.Sprintf("%s://%s:%s", self.proto, gdm.Address.IP.String(), gdm.Props["Port"])
+        url := fmt.Sprintf("%s://%s:%s", p.proto, gdm.Address.IP.String(), gdm.Props["Port"])
         caps := strings.Split(gdm.Props["Protocol-Capabilities"], ",")
-        self.mu.Lock()
-        self.url = url
-        self.capabilities = caps
-        self.mu.Unlock()
+        p.mu.Lock()
+        p.url = url
+        p.capabilities = caps
+        p.mu.Unlock()
     }
     //
 }
 
-func (self *Plex) plexPlaying() {
+func (p *Plex) plexPlaying() {
 }
 
-func (self *Plex) getUrl() string {
-    self.mu.Lock()
-    url := self.url
-    self.mu.Unlock()
+func (p *Plex) getURL() string {
+    p.mu.Lock()
+    url := p.url
+    p.mu.Unlock()
     return url
 }
 
-func (self *Plex) getCommandID() int {
-    self.mu.Lock()
-    id := self.commandID
-    self.commandID++
-    self.mu.Unlock()
+func (p *Plex) getCommandID() int {
+    p.mu.Lock()
+    id := p.commandID
+    p.commandID++
+    p.mu.Unlock()
     return id
 }
 
-func (self *Plex) hasCapability(c string) bool {
-    self.mu.Lock()
-    caps := self.capabilities
-    self.mu.Unlock()
+func (p *Plex) hasCapability(c string) bool {
+    p.mu.Lock()
+    caps := p.capabilities
+    p.mu.Unlock()
     for _, v := range caps {
         if c == v {
             return true
@@ -116,26 +118,27 @@ func (self *Plex) hasCapability(c string) bool {
     return false
 }
 
-func (self *Plex) SendCommand(cmd string, args ...string) bool {
+// SendCommand receives the command from the dispatcher
+func (p *Plex) SendCommand(cmd string, args ...string) bool {
     switch cmd {
     case "PowerOn":
         clog.Debug("Powering on Plex")
-        return self.powerOn()
+        return p.powerOn()
     default:
         clog.Debug("Looking up %s in the Plex map", cmd)
-        if val, ok := self.commands[cmd]; ok {
-            p, err := val.Command(args...)
+        if val, ok := p.commands[cmd]; ok {
+            path, err := val.command(args...)
             if err != nil {
                 return false
             }
-            return self.plexGet(p)
+            return p.plexGet(path)
         }
     }
     return false
 }
 
-func (self *Plex) plexGet(str string) bool {
-    burl := self.getUrl()
+func (p *Plex) plexGet(str string) bool {
+    burl := p.getURL()
     if burl == "" {
         clog.Debug("Plex: no url set, client not running?")
         return false
@@ -146,13 +149,11 @@ func (self *Plex) plexGet(str string) bool {
     // FIXME: cleaner timeouts in go1.3
     client := http.Client{ Transport: &http.Transport{Dial: dialTimeout}, }
     resp, err := client.Get(purl)
-
     if err != nil {
         clog.Error("FIXME: go1.3 - %s", err.Error())
         return false
-    } else {
-        resp.Body.Close()
     }
+    resp.Body.Close()
     return true
 }
 
@@ -160,27 +161,27 @@ func dialTimeout(network, addr string) (net.Conn, error) {
     return net.DialTimeout(network, addr, time.Duration(1 * time.Second))
 }
 
-func (self *Plex) setTimeline(loc string, tls map[string]timelineXML) {
+func (p *Plex) setTimeline(loc string, tls map[string]timelineXML) {
     //timelines map[string]timelineXML
     //location string
     //tlmu sync.Mutex
-    self.tlmu.Lock()
-    self.location = loc
-    self.timelines = tls
-    self.tlmu.Unlock()
+    p.tlmu.Lock()
+    p.location = loc
+    p.timelines = tls
+    p.tlmu.Unlock()
 }
 
-func (self *Plex) getLocation() string {
-    self.tlmu.Lock()
-    loc := self.location
-    self.tlmu.Unlock()
+func (p *Plex) getLocation() string {
+    p.tlmu.Lock()
+    loc := p.location
+    p.tlmu.Unlock()
     return loc
 }
 
-func (self *Plex) powerOn() bool {
-    if self.wol != "" {
-        return tools.Wol(self.wol)
+func (p *Plex) powerOn() bool {
+    if p.wol != "" {
+        return tools.Wol(p.wol)
     }
-    clog.Debug("Can not power on %s", self.name)
+    clog.Debug("Can not power on %s", p.name)
     return false
 }

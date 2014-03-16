@@ -1,23 +1,23 @@
 package plex
 
-var PHT = map[string]Commander{
+var pht = map[string]commander{
     // Player
-    "MoveUp":           PlainCommand{"/player/navigation/moveUp"},
-    "MoveDown":         PlainCommand{"/player/navigation/moveDown"},
-    "MoveLeft":         PlainCommand{"/player/navigation/moveLeft"},
-    "MoveRight":        PlainCommand{"/player/navigation/moveRight"},
-    "Select":           PlainCommand{"/player/navigation/select"},
-    "Home":             PlainCommand{"/player/navigation/home"},
-    "Back":             PlainCommand{"/player/navigation/back"},
-    "Play":             PlainCommand{"/player/playback/play"},
-    "Pause":            PlainCommand{"/player/playback/pause"},
-    "Stop":             PlainCommand{"/player/playback/stop"},
-    "OSD":              PlainCommand{"/player/navigation/toggleOSD"},
+    "MoveUp":           plainCommand{"/player/navigation/moveUp"},
+    "MoveDown":         plainCommand{"/player/navigation/moveDown"},
+    "MoveLeft":         plainCommand{"/player/navigation/moveLeft"},
+    "MoveRight":        plainCommand{"/player/navigation/moveRight"},
+    "Select":           plainCommand{"/player/navigation/select"},
+    "Home":             plainCommand{"/player/navigation/home"},
+    "Back":             plainCommand{"/player/navigation/back"},
+    "Play":             plainCommand{"/player/playback/play"},
+    "Pause":            plainCommand{"/player/playback/pause"},
+    "Stop":             plainCommand{"/player/playback/stop"},
+    "OSD":              plainCommand{"/player/navigation/toggleOSD"},
     //
-    "StepForward":      PlainCommand{"/player/playback/stepForward"},
-    "StepBack":         PlainCommand{"/player/playback/stepBack"},
+    "StepForward":      plainCommand{"/player/playback/stepForward"},
+    "StepBack":         plainCommand{"/player/playback/stepBack"},
     // Legacy
-    "NextLetter":       PlainCommand{"/player/navigation/nextLetter"},
-    "PrevLetter":       PlainCommand{"/player/navigation/previousLetter"},
+    "NextLetter":       plainCommand{"/player/navigation/nextLetter"},
+    "PrevLetter":       plainCommand{"/player/navigation/previousLetter"},
     //
 }
