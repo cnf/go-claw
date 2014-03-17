@@ -1,3 +1,5 @@
 /progrem
 /go-claw*
 /sample
+/Makefile
+*_test.go
