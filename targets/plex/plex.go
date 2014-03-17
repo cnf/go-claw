@@ -52,7 +52,6 @@ func Register() {
 
 // Create a new instance of this target
 func Create(name string, params map[string]string) (t targets.Target, ok bool) {
-    clog.Debug("Plex Create called")
     p := &Plex{name: name, }
     p.proto = "http"
     if val, ok := params["name"]; ok {
@@ -72,21 +71,50 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
 
 // SendCommand receives the command from the dispatcher
 func (p *Plex) SendCommand(cmd string, args ...string) bool {
+    var path string
+    var err error
+    var val commander
+    var ok bool
     switch cmd {
     case "PowerOn":
-        clog.Debug("Powering on Plex")
         return p.powerOn()
-    default:
-        clog.Debug("Looking up %s in the Plex map", cmd)
-        if val, ok := p.commands[cmd]; ok {
-            path, err := val.command(args...)
-            if err != nil {
-                return false
-            }
-            return p.plexGet(path)
+    case "SmartUp":
+        if p.isNav() {
+            val, ok = p.commands["MoveUp"]
+        } else {
+            val, ok = p.commands["SkipNext"]
         }
+    case "SmartDown":
+        if p.isNav() {
+            val, ok = p.commands["MoveDown"]
+        } else {
+            val, ok = p.commands["SkipPrevious"]
+        }
+    case "SmartLeft":
+        if p.isNav() {
+            val, ok = p.commands["MoveLeft"]
+        } else {
+            val, ok = p.commands["StepBack"]
+        }
+    case "SmartRight":
+        if p.isNav() {
+            val, ok = p.commands["MoveRight"]
+        } else {
+            val, ok = p.commands["StepForward"]
+        }
+    case "SmartSelect":
+        if p.isNav() {
+            val, ok = p.commands["Select"]
+        } else {
+            val, ok = p.commands["Play"]
+        }
+    default:
+        val, ok = p.commands[cmd]
     }
-    return false
+    if !ok { return false }
+    path, err = val.command(args...)
+    if err != nil { return false }
+    return p.plexGet(path)
 }
 
 func (p *Plex) plexWatcher() {
@@ -142,11 +170,11 @@ func (p *Plex) hasCapability(c string) bool {
 func (p *Plex) plexGet(str string) bool {
     burl := p.getURL()
     if burl == "" {
-        clog.Debug("Plex: no url set, client not running?")
+        clog.Info("Plex: no url set, client not running?")
         return false
     }
     purl := fmt.Sprintf("%s%s", burl, str)
-    clog.Debug(">>> Plex get %s", purl)
+    clog.Debug("Plex: GET %s", purl)
     u, _ := url.Parse(purl)
     q := u.Query()
     q.Set("commandID", strconv.Itoa(p.getCommandID()))
@@ -181,11 +209,33 @@ func (p *Plex) getLocation() string {
     return loc
 }
 
+func (p *Plex) isNav() bool {
+    loc := p.getLocation()
+    p.tlmu.Lock()
+    tls := p.timelines
+    p.tlmu.Unlock()
+    if loc == "navigation" {
+        return true
+    }
+    // navigation,fullScreenVideo,fullScreenPhoto,fullScreenMusic
+
+    if (loc == "fullScreenVideo") && (tls["video"].State == "playing") {
+        return false
+    }
+    if (loc == "fullScreenPhoto") && (tls["photo"].State == "playing") {
+        return false
+    }
+    if (loc == "fullScreenMusic") && (tls["music"].State == "playing") {
+        return false
+    }
+    return true
+}
+
 func (p *Plex) powerOn() bool {
     if p.wol != "" {
         return tools.Wol(p.wol)
     }
-    clog.Debug("Can not power on %s", p.name)
+    clog.Info("Can not power on %s", p.name)
     return false
 }
 

@@ -51,13 +51,12 @@ func (p *Plex) listen() {
     if err != nil { return }
     lport := l.Addr().(*net.TCPAddr).Port
     p.listenport = lport
-    clog.Debug("Plex subscription listener on port `%d`", lport)
+    clog.Debug("Plex: subscription listener on port `%d`", lport)
 
     http.Serve(l, nil)
 }
 
 func (p *Plex) handler(w http.ResponseWriter, r *http.Request) {
-    // clog.Debug("Incoming subscription")
     body, rerr := ioutil.ReadAll(r.Body)
     if rerr != nil { return }
     var mc mediaContainerXML
@@ -75,16 +74,13 @@ func (p *Plex) subscriberLoop() {
     for {
         burl := p.getURL()
         if burl == "" {
-            // clog.Debug("Plex: no client found to subscribe to")
             time.Sleep(3 * time.Second)
             continue
         }
         if !p.hasCapability("timeline") {
-            // clog.Debug("Plex: Client doesn't support timeline")
-            time.Sleep(3 * time.Second)
+            time.Sleep(5 * time.Second)
             continue
         }
-        // clog.Debug("Sending subscribe")
         surl := fmt.Sprintf("%s%s", burl, "/player/timeline/subscribe")
         u, _ := url.Parse(surl)
         q := u.Query()
@@ -103,13 +99,17 @@ func (p *Plex) subscriberLoop() {
         resp, err := client.Do(request)
         if err != nil {
             if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
-                clog.Debug("Sub ERR: %s", err.Error())
+                clog.Warn("Plex: Sub ERR: %s", err.Error())
                 p.mu.Lock()
                 p.url = ""
                 p.capabilities = []string{}
                 p.mu.Unlock()
+                p.tlmu.Lock()
+                p.timelines = nil
+                p.location = ""
+                p.tlmu.Unlock()
             } else {
-                clog.Debug("Sub warn: %s", err.Error())
+                clog.Warn("Plex: Sub warn: %s", err.Error())
             }
             time.Sleep(5 * time.Second)
             continue
@@ -117,7 +117,6 @@ func (p *Plex) subscriberLoop() {
         defer resp.Body.Close()
         // FIXME: do something useful
         // body, err := ioutil.ReadAll(resp.Body)
-        // clog.Debug("GOT: %s", string(body))
         time.Sleep(30 * time.Second)
     }
 }
