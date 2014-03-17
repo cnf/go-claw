@@ -32,32 +32,32 @@ func Create(params map[string]string) (l listeners.Listener, ok bool) {
     return sl, true
 }
 
-func (self *LircSocketListener) setup(cs *listeners.CommandStream) bool {
-    clog.Debug("Opening socket: %s", self.Path)
-    c, err := net.Dial("unix", self.Path)
+func (l *LircSocketListener) setup(cs *listeners.CommandStream) bool {
+    clog.Debug("Opening socket: %s", l.Path)
+    c, err := net.Dial("unix", l.Path)
     // If there is no socket to bind to during setup, we fail.
     if err != nil {
-        clog.Warn("Socket setup failed for %s", self.Path)
+        clog.Warn("Socket setup failed for %s", l.Path)
         cs.ChErr <- err
         return false
     }
-    self.reader = bufio.NewReader(c)
+    l.reader = bufio.NewReader(c)
     return true
 }
 
-func (self *LircSocketListener) RunListener(cs *listeners.CommandStream) {
+func (l *LircSocketListener) RunListener(cs *listeners.CommandStream) {
     // var err error
-    // self.conn, err = net.Dial("unix", self.Path)
+    // l.conn, err = net.Dial("unix", l.Path)
     // if err != nil {
         // cs.ChErr <- err
         // return
     // }
-    if (!self.setup(cs)) {
+    if (!l.setup(cs)) {
         cs.Fatal = true
         return
     }
     for {
-        str, err := self.reader.ReadString('\n')
+        str, err := l.reader.ReadString('\n')
         if err != nil {
             if err != io.EOF {
                 // Remote end closed socket
@@ -66,8 +66,8 @@ func (self *LircSocketListener) RunListener(cs *listeners.CommandStream) {
                 clog.Error("Socket closed by remote host: %s", err.Error())
                 time.Sleep(1000 * time.Millisecond)
                 // var err error
-                // self.conn, err = net.Dial("unix", self.Path)
-                if (!self.setup(cs)) {
+                // l.conn, err = net.Dial("unix", l.Path)
+                if (!l.setup(cs)) {
                     time.Sleep(3000 * time.Millisecond)
                     continue
                 }

@@ -21,19 +21,19 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
     return l, true
 }
 
-func (self *Linux) SendCommand(cmd string, args ...string) bool {
+func (l *Linux) SendCommand(cmd string, args ...string) bool {
     switch cmd {
     case "PowerOn":
-        clog.Debug("Power on %s", self.name)
-        return self.powerOn()
+        clog.Debug("Power on %s", l.name)
+        return l.powerOn()
     }
     return false
 }
 
-func (self *Linux) powerOn() bool {
-    if self.wol != "" {
-        return tools.Wol(self.wol)
+func (l *Linux) powerOn() bool {
+    if l.wol != "" {
+        return tools.Wol(l.wol)
     }
-    clog.Debug("Can not power on %s", self.name)
+    clog.Debug("Can not power on %s", l.name)
     return false
 }

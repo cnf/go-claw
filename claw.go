@@ -7,9 +7,7 @@ import "path/filepath"
 import "runtime"
 import "flag"
 
-// import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/dispatcher"
-// import "github.com/cnf/go-claw/setup"
 import "github.com/cnf/go-claw/clog"
 
 var cfgfile string
