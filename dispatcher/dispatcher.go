@@ -18,97 +18,95 @@ type Dispatcher struct {
     cs *listeners.CommandStream
 }
 
-func (self *Dispatcher) Start() {
-    defer self.cs.Close()
-    self.activemode = "default"
-    self.activemode = "plex"
-    self.keytimeout = time.Duration(500 * time.Millisecond) 
-    self.readConfig()
-    self.setupListeners()
-    self.setupModes()
-    self.setupTargets()
+func (d *Dispatcher) Start() {
+    defer d.cs.Close()
+    d.activemode = "default"
+    d.activemode = "plex"
+    d.keytimeout = time.Duration(120 * time.Millisecond) 
+    d.readConfig()
+    d.setupListeners()
+    d.setupModes()
+    d.setupTargets()
 
     var out listeners.RemoteCommand
 
-    for self.cs.Next(&out) {
-        if self.cs.HasError() {
-            clog.Warn("An error occured somewhere: %v", self.cs.GetError())
-            self.cs.ClearError()
+    for d.cs.Next(&out) {
+        if d.cs.HasError() {
+            clog.Warn("An error occured somewhere: %v", d.cs.GetError())
+            d.cs.ClearError()
         }
-        // clog.Debug("repeat: %2d - key: %s - source: %s", out.Repeat, out.Key, out.Source)
-        self.dispatch(&out)
+        d.dispatch(&out)
     }
 }
 
-func (self *Dispatcher) setupListeners() {
-    self.listenermap = make(map[string]*listeners.Listener)
-    self.cs = listeners.NewCommandStream()
+func (d *Dispatcher) setupListeners() {
+    d.listenermap = make(map[string]*listeners.Listener)
+    d.cs = listeners.NewCommandStream()
 
-    for k, v := range self.config.Listeners {
+    for k, v := range d.config.Listeners {
         l, ok := listeners.GetListener(v.Module, v.Params)
         if ok {
-            clog.Debug("Setting up listener `%s`", k)
-            self.listenermap[k] = &l
-            self.cs.AddListener(l)
+            clog.Info("Setting up listener: %s", k)
+            d.listenermap[k] = &l
+            d.cs.AddListener(l)
         }
     }
 
 }
 
-func (self *Dispatcher) setupModes() {
-    self.modemap = make(map[string]*Mode)
-    for k, v := range self.config.Modes {
-        self.modemap[k] = &Mode{Keys: make(map[string][]string)}
+func (d *Dispatcher) setupModes() {
+    d.modemap = make(map[string]*Mode)
+    for k, v := range d.config.Modes {
+        clog.Info("Setting up mode: %s", k)
+        d.modemap[k] = &Mode{Keys: make(map[string][]string)}
         for kk, kv := range v {
-            self.modemap[k].Keys[kk] = make([]string, len(kv))
+            d.modemap[k].Keys[kk] = make([]string, len(kv))
             i := 0
             for _, av := range kv {
-                self.modemap[k].Keys[kk][i] = av
+                d.modemap[k].Keys[kk][i] = av
                 i++
             }
         }
     }
 }
 
-func (self *Dispatcher) setupTargets() {
-    self.targetmap = make(map[string]targets.Target)
-    for k, v := range self.config.Targets {
+func (d *Dispatcher) setupTargets() {
+    d.targetmap = make(map[string]targets.Target)
+    for k, v := range d.config.Targets {
         t, ok := targets.GetTarget(v.Module, k, v.Params)
         if ok {
-            self.targetmap[k] = t
-            println(k)
+            d.targetmap[k] = t
+            clog.Info("Setting up target: %s", k)
         }
     }
 }
 
-func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
-    clog.Debug("repeat: %2d - key: %s - source: %s", rc.Repeat, rc.Key, rc.Source)
+func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
+    clog.Debug("Dispatch: repeat `%2d` - key `%s` - source `%s`", rc.Repeat, rc.Key, rc.Source)
     tdiff := time.Since(rc.Time)
-    if tdiff > self.keytimeout {
-        clog.Info("Key timeout reached: %# v", tdiff.String())
+    clog.Debug("Dispatch: --> t: %s", tdiff.String())
+    if tdiff > d.keytimeout {
+        clog.Info("Dispatch: Key timeout reached: %# v", tdiff.String())
         return false
     }
     var mod string
     var cmd string
     var args string
     var rok bool
-    if val, ok := self.modemap[self.activemode].Keys[rc.Key]; ok {
-        clog.Debug("+ Found `%s` in %s", rc.Key, self.activemode)
+    if val, ok := d.modemap[d.activemode].Keys[rc.Key]; ok {
         for _, v := range val {
-            clog.Debug(v)
-            mod, cmd, args, rok = self.resolve(v)
-            self.sender(mod, cmd, args)
+            mod, cmd, args, rok = d.resolve(v)
+            d.sender(mod, cmd, args)
         }
         return true
-    } else if val, ok := self.modemap["default"].Keys[rc.Key]; ok {
-        clog.Debug("+ Found `%s` in default!", rc.Key)
+    } else if val, ok := d.modemap["default"].Keys[rc.Key]; ok {
         for _, v := range val {
-            mod, cmd, args, rok = self.resolve(v)
-            self.sender(mod, cmd, args)
+            mod, cmd, args, rok = d.resolve(v)
+            d.sender(mod, cmd, args)
         }
         return true
     } else {
-        clog.Debug("+ `%s` Not found.")
+        clog.Info("Dispatch: key `%s` Not found in any mode.")
         return false
     }
     if !rok {
@@ -118,11 +116,10 @@ func (self *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     return true
 }
 
-func (self *Dispatcher) resolve(input string) (mod string, cmd string, args string, ok bool) {
-    clog.Debug("++ Resolving input for %s", input)
+func (d *Dispatcher) resolve(input string) (mod string, cmd string, args string, ok bool) {
     foo := strings.SplitN(input, "::", 2)
     if len(foo) < 2 {
-        clog.Warn("%s is not a well formed command", input)
+        clog.Warn("Dispatch: `%s` is not a well formed command", input)
         return "", "", "", false
     }
     bar := strings.SplitN(foo[1], " ", 2)
@@ -134,30 +131,25 @@ func (self *Dispatcher) resolve(input string) (mod string, cmd string, args stri
     return foo[0], bar[0], baz, true
 }
 
-func (self *Dispatcher) sender(mod string, cmd string, args string) bool {
+func (d *Dispatcher) sender(mod string, cmd string, args string) bool {
     if mod == "mode" {
-        clog.Debug("++++ %s - %s", mod, cmd)
-        return self.setMode(cmd)
+        return d.setMode(cmd)
     }
-    if t, ok := self.targetmap[mod]; ok {
+    if t, ok := d.targetmap[mod]; ok {
         sok := t.SendCommand(cmd, args)
         if !sok {
-            clog.Debug("- Failed to send command `%s` for `%s`", cmd, mod)
+            clog.Debug("Dispatch: failed to send command `%s` for `%s`", cmd, mod)
         }
         return true
     }
     return false
 }
 
-func (self *Dispatcher) setMode(mode string) bool {
-    if _, ok := self.modemap[mode]; ok {
-        clog.Debug("+ Mode changed to `%s`", mode)
-        self.activemode = mode
-    } else {
-        for k, _ := range self.modemap {
-            clog.Debug("---- %s", k)
-        }
-        return false
+func (d *Dispatcher) setMode(mode string) bool {
+    if _, ok := d.modemap[mode]; ok {
+        clog.Info("Dispatch: mode changed to `%s`", mode)
+        d.activemode = mode
+        return true
     }
-    return true
+    return false
 }

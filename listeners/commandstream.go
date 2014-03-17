@@ -15,68 +15,68 @@ func NewCommandStream() *CommandStream {
     return cs
 }
 
-func (self *CommandStream) Count() int {
-    return self.count
+func (cs *CommandStream) Count() int {
+    return cs.count
 }
 
-func (self *CommandStream) Close() {
-    if self == nil {
+func (cs *CommandStream) Close() {
+    if cs == nil {
         return
     }
-    close(self.Ch)
-    close(self.ChErr)
+    close(cs.Ch)
+    close(cs.ChErr)
 }
 
-func (self *CommandStream) AddListener(l RemoteListener) bool {
-    go l.RunListener(self)
-    self.count++
+func (cs *CommandStream) AddListener(l RemoteListener) bool {
+    go l.RunListener(cs)
+    cs.count++
     return true
 }
 
-func (self *CommandStream) HasError() bool {
-    return (self.err != nil)
+func (cs *CommandStream) HasError() bool {
+    return (cs.err != nil)
 }
 
-func (self *CommandStream) GetError() error {
-    return self.err
+func (cs *CommandStream) GetError() error {
+    return cs.err
 }
 
-func (self *CommandStream) ClearError() {
-    self.err = nil
-    self.Fatal = false
+func (cs *CommandStream) ClearError() {
+    cs.err = nil
+    cs.Fatal = false
 }
 
-func (self *CommandStream) Next(cmd *RemoteCommand) bool {
-    if (self.count <= 0) {
-        clog.Debug("No listeners, shutting down")
+func (cs *CommandStream) Next(cmd *RemoteCommand) bool {
+    if (cs.count <= 0) {
+        clog.Warn("No listeners, shutting down")
         return false
     }
     for {
         select {
-        case tmp, ok := <- self.Ch:
+        case tmp, ok := <- cs.Ch:
             if (!ok) {
                 clog.Warn("Error encountered while reading the next command")
                 return false
             }
             *cmd = *tmp
             return true
-        case err := <- self.ChErr:
-            self.err = err
-            if (self.Fatal) {
-                clog.Debug("Fatal error, listener shutting down")
-                self.count--
+        case err := <- cs.ChErr:
+            cs.err = err
+            if (cs.Fatal) {
+                clog.Error("Fatal error, listener shutting down")
+                cs.count--
             }
             clog.Error("Listener exited and reported an error: %v", err)
-            if (self.count > 0) {
+            if (cs.count > 0) {
                 continue
             }
-            clog.Error("Nothing to listen to!")
+            clog.Warn("Nothing to listen to!")
             return false
         }
     }
     return false
 }
 
-func (self *CommandStream) Error() error {
-    return self.err
+func (cs *CommandStream) Error() error {
+    return cs.err
 }

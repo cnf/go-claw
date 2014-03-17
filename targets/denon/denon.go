@@ -26,14 +26,13 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
     if val, ok := params["address"]; ok {
         d := setup(name, val, 23)
         d.commands = AVRX2000
-        d.wait = time.Duration(100 * time.Millisecond)
+        d.wait = time.Duration(110 * time.Millisecond)
         return d, true
     }
     return nil, false
 }
 
 func setup(name string, host string, port int) *Denon {
-    clog.Debug("Initializing Denon")
     tmp, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", host, port))
     if err != nil {
         clog.Error("Could not Initialize Denon: %s", err)
@@ -50,10 +49,8 @@ func (d *Denon) SendCommand(cmd string, args ...string) bool {
     case "Mute":
         return d.toggleMute()
     default:
-        // clog.Debug(">>>>>>>>> %# v", d.commands)
         cstr, err := d.getCommand(cmd, args...)
         if err != nil { return false }
-        clog.Debug(">>>>>>>>> %# v", cstr)
         _, serr := d.socketSend(cstr)
         if serr != nil { return false }
         return true
@@ -66,7 +63,6 @@ func (d *Denon) Capabilities() []string {
 }
 
 func (d *Denon) getCommand(cmd string, args ...string) (string, error) {
-    clog.Debug("Looking up %s in the map", cmd)
     if val, ok := d.commands[cmd]; ok {
         cstr, err := val.Command(args...)
         if err != nil {
@@ -74,19 +70,19 @@ func (d *Denon) getCommand(cmd string, args ...string) (string, error) {
         }
         return cstr, nil
     }
-    return "", errors.New("Could not get command")
+    return "", errors.New("could not get command")
 }
 
 func (d *Denon) socketSend(str string) (cmd string, err error) {
     if d.addr == nil {
         clog.Warn("No address to sent Denon command to.")
-        return "", errors.New("No address set")
+        return "", errors.New("no address set")
     }
 
     tdiff := time.Since(d.last)
     if tdiff < d.wait {
         // time.Sleep(d.wait)
-        clog.Debug("+++++ Waiting %# v", d.wait - tdiff)
+        clog.Debug("Denon: Waiting %s", (d.wait - tdiff).String())
         time.Sleep(d.wait - tdiff)
     }
 
@@ -113,15 +109,12 @@ func (d *Denon) toggleMute() bool {
     r, err := d.socketSend("MU?")
     if err != nil { return false }
     r = strings.TrimSpace(r)
-    clog.Debug("Found: %# v", r)
     if r == "MUOFF" {
-        clog.Debug("MU OFF!")
         cmd, err := d.getCommand("MuteOn")
         if err != nil { return false }
         _, serr := d.socketSend(cmd)
         if serr != nil { return false }
     } else if r == "MUON" {
-        clog.Debug("MU ON!")
         cmd, err := d.getCommand("MuteOff")
         if err != nil { return false }
         _, serr := d.socketSend(cmd)
