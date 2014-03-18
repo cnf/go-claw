@@ -129,9 +129,9 @@ func (d *Denon) powerOn() bool {
     if err != nil { return false }
     rtrn, serr := d.socketSend(pstr)
     if serr != nil { return false }
-    if rtrn != pstr { return false }
-    time.Sleep(3000 * time.Millisecond)
-    // zstr, err := d.getCommand("Z2PowerOff")
+    rtrn = strings.TrimSpace(rtrn)
+    if rtrn != "PWON" { return false }
+    time.Sleep(10 * time.Second)
 
     return true
 }

@@ -1,7 +1,7 @@
 package denon
 
 var AVRX2000 = map[string]Commander{
-    "PowerOn":    PlainCommand{"PWON"},
+    "PowerOn":    PlainCommand{"ZMON"},
     "PowerOff":   PlainCommand{"PWSTANDBY"},
     "VolumeUp":   PlainCommand{"MVUP"},
     "VolumeDown": PlainCommand{"MVDOWN"},
