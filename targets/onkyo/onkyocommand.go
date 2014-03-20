@@ -3,6 +3,7 @@ package onkyo
 import "encoding/binary"
 import "bytes"
 import "errors"
+import "fmt"
 
 type OnkyoCommand interface {
     SetMessage(string)
@@ -23,13 +24,23 @@ func (c *OnkyoCommandTCP) SetMessage(msg string) {
     c.Msg = msg
 }
 
+func IntMax(i int, ints... int) int {
+    max := i
+    for _, ci := range ints {
+        if ci > max {
+            max = ci
+        }
+    }
+    return max
+}
+
 func (c *OnkyoCommandTCP) Bytes() ([]byte, error) {
     buf := new(bytes.Buffer)
     if c.Msg == "" {
         return nil, errors.New("OnkyoCommandTCP:Bytes(): Empty message, cannot construct emtpy command")
     }
     msg := c.Msg
-    if msg[0] != '1' {
+    if msg[0] != '!' {
         msg = "!1" + msg
     }
     // Build the ISCP packet
@@ -64,6 +75,8 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
         // No end position
         return errors.New("OnkyoCommandTCP:Parse(): EOF byte missing!")
     }
+    nlpos := bytes.IndexByte(buf[endpos:], 0x0A) + endpos
+    crpos := bytes.IndexByte(buf[endpos:], 0x0D) + endpos
 
     // parse the header
     b := bytes.NewReader(buf[0:16])
@@ -91,8 +104,12 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
     if err := binary.Read(b, binary.BigEndian, &rfu); err != nil {
         return err
     }
-    if uint32(len(buf[16:endpos])) != datalen {
-        return errors.New("OnkyoCommandTCP:Parse(): data length mismatch")
+    rxdatalen := uint32(len(buf[16:IntMax(endpos, nlpos, crpos)])) + 1
+    if rxdatalen != datalen {
+        return errors.New(
+            fmt.Sprintf("OnkyoCommandTCP:Parse(): data length mismatch: %d != expected %d",
+                rxdatalen, datalen,
+            ))
     }
     if datalen < 2 {
         return errors.New("OnkyoCommandTCP:Parse(): data too short, expected minimum length of 2")
@@ -105,7 +122,7 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
         return errors.New("OnkyoCommandTCP:Parse(): Message not coming from receiver, don't know how to handle.")
     }
     // set the message - strip the "!1" start
-    c.msg = string(buf[18:endpos])
+    c.Msg = string(buf[18:endpos])
 
     return nil
 }
