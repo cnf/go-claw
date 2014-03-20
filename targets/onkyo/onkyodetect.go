@@ -1,22 +1,29 @@
 package onkyo
 
 import "github.com/cnf/go-claw/tools"
+import "github.com/cnf/go-claw/clog"
 import "strconv"
 import "net"
-import "fmt"
 import "time"
+import "strings"
 
 const ONKYO_PORT = 60128
 const ONKYO_MAGIC = "!xECNQSTN"
 
-func runOnkyoDetect(ch chan string, timeout int) {
+type TargetDevice struct {
+    Name string
+    Model string
+    Params map[string]string   // Parameters that should be saved in the config file
+    Detected map[string]string // Detected parameters that should be re-evaluated each connect
+}
+
+func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     defer close(ch)
     addrs := tools.BroadcastAddrs()
     port := strconv.Itoa(ONKYO_PORT)
 
     cmd := &OnkyoCommandTCP{ONKYO_MAGIC}
     transmit_str, err := cmd.Bytes()
-
     if err != nil {
         return
     }
@@ -27,7 +34,7 @@ func runOnkyoDetect(ch chan string, timeout int) {
     }
     conn, err := net.ListenUDP("udp4", udpaddr)
     if err != nil {
-        fmt.Printf("ERROR: %s\n", err.Error())
+        clog.Error("targets/onkyo: Could not listen on UDP Address %v: %s", udpaddr, err.Error())
         return
     }
     defer conn.Close()
@@ -37,6 +44,7 @@ func runOnkyoDetect(ch chan string, timeout int) {
     for _, a := range addrs {
         udpdest, err := net.ResolveUDPAddr("udp4", a+":"+port)
         if err != nil {
+            clog.Warn("targets/onkyo: ResolveUDPAddr('udp4','%s:%s'): %s", a, port, err.Error())
             continue
         }
         conn.WriteToUDP(transmit_str, udpdest)
@@ -49,6 +57,10 @@ func runOnkyoDetect(ch chan string, timeout int) {
         rlen, raddr, err := conn.ReadFromUDP(buf);
         if err != nil {
             if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() || nerr.Timeout() {
+                if (!nerr.Timeout()) {
+                    // Unexpected!
+                    clog.Error("targets/onkyo: ReadFromUDP: %s", err.Error())
+                }
                 return
             }
             continue
@@ -56,32 +68,63 @@ func runOnkyoDetect(ch chan string, timeout int) {
         //fmt.Printf("Got response from: %v (len: %d):\n", raddr, rlen)
         resp := &OnkyoCommandTCP{}
         if err := resp.Parse(buf[0:rlen]); err != nil {
+            // fmt.Printf("Error parsing Onkyo response: %s", err.Error())
+            clog.Warn("targets/onkyo: Parse Onkyo Response: %s", err.Error())
             continue
         }
-        ch <- raddr.String() + ":" + resp.Message()
+        // Parse the message:
+        // ECN<model name>/<ISCP port>/<region:DX|XX|JJ>/<id>
+        rmsg := resp.Message()
+        if len(rmsg) <= 3 {
+            clog.Warn("targets/onkyo: Autodetect response too short: %d", len(rmsg))
+            continue
+        }
+        if rmsg[0:3] != "ECN" {
+            clog.Warn("targets/onkyo: Autodetect Unexpected response: %s", rmsg)
+            continue
+        }
+        splitmsg := strings.Split(rmsg[3:], "/")
+        if len(splitmsg) != 4 {
+            clog.Warn("targets/onkyo: Autodetect invalid response format, expected 4 fields: %s", rmsg)
+            continue
+        }
+        tgt := &TargetDevice{}
+        tgt.Name = splitmsg[0] + " (" + splitmsg[3] + ")"
+        tgt.Model = splitmsg[0]
+        tgt.Params = make(map[string]string)
+        tgt.Params["id"] = splitmsg[3]
+        tgt.Params["Model"] = splitmsg[0]
+        tgt.Detected = make(map[string]string)
+        tgt.Detected["port"] = splitmsg[1]
+        host, _, err := net.SplitHostPort(raddr.String())
+        if err != nil {
+            clog.Warn("Could not split the host/port for '%s'", raddr.String())
+            continue
+        }
+        tgt.Detected["ip"] = host
+
+        ch <- tgt
 
         // Once we got a response, wait maximum 50ms for other responses
-        conn.SetReadDeadline(time.Now().Add(time.Duration(50) * time.Millisecond))
+        conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Millisecond))
     }
 }
 
-func OnkyoAutoDetect(timeout int) []string {
-    ch := make(chan string)
+func OnkyoAutoDetect(timeout int) []TargetDevice {
+    ch := make(chan *TargetDevice)
     go runOnkyoDetect(ch, timeout)
-    ret := make([]string, 0)
+    ret := make([]TargetDevice, 0)
     //timer := time.NewTimer(time.Millisecond * time.Duration(timeout + 200))
     for {
         select {
             case s, ok := <- ch:
                 if !ok {
-                    fmt.Printf("Go channel closed - stop!\n");
                     return ret
                 }
-                ret = append(ret, s)
-                //fmt.Printf("Got response: '%s'\n", s)
+                ret = append(ret, *s)
             //case <- timer.C:
                 //fmt.Printf("Timeout!\n")
-            //    return ret
+                //return ret
         }
     }
     return ret
