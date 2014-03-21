@@ -1,15 +1,16 @@
 package onkyo
 
-import "github.com/cnf/go-claw/tools"
-import "github.com/cnf/go-claw/clog"
-import "strconv"
 import "net"
 import "time"
 import "strings"
+import "strconv"
+import "github.com/cnf/go-claw/tools"
+import "github.com/cnf/go-claw/clog"
 
-const ONKYO_PORT = 60128
-const ONKYO_MAGIC = "!xECNQSTN"
+const onkyoPort = 60128
+const onkyoMagic = "!xECNQSTN"
 
+// TargetDevice is the structure the autodetect code returns
 type TargetDevice struct {
     Name string
     Model string
@@ -20,10 +21,10 @@ type TargetDevice struct {
 func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     defer close(ch)
     addrs := tools.BroadcastAddrs()
-    port := strconv.Itoa(ONKYO_PORT)
+    port := strconv.Itoa(onkyoPort)
 
-    cmd := &OnkyoCommandTCP{ONKYO_MAGIC}
-    transmit_str, err := cmd.Bytes()
+    cmd := &OnkyoCommandTCP{onkyoMagic}
+    transmitStr, err := cmd.Bytes()
     if err != nil {
         return
     }
@@ -47,7 +48,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
             clog.Warn("targets/onkyo: ResolveUDPAddr('udp4','%s:%s'): %s", a, port, err.Error())
             continue
         }
-        conn.WriteToUDP(transmit_str, udpdest)
+        conn.WriteToUDP(transmitStr, udpdest)
         // Ignore errors - just continue
     }
 
@@ -110,6 +111,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     }
 }
 
+// OnkyoAutoDetect is used to get a list of Onkyo receivers detected on the network
 func OnkyoAutoDetect(timeout int) []TargetDevice {
     ch := make(chan *TargetDevice)
     go runOnkyoDetect(ch, timeout)

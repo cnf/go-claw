@@ -1,10 +1,12 @@
 package onkyo
 
-import "encoding/binary"
+import "fmt"
 import "bytes"
 import "errors"
-import "fmt"
+import "encoding/binary"
 
+// OnkyoCommand describes the main interface for an object to parse and
+// construct an Onkyo remote control message
 type OnkyoCommand interface {
     SetMessage(string)
     Message() (string)
@@ -12,32 +14,26 @@ type OnkyoCommand interface {
     Parse([]byte) (error)
 }
 
+// OnkyoCommandSerial implements the OnkyoCommand for serial communication
 type OnkyoCommandSerial struct {
     Msg string
 }
 
+// OnkyoCommandTCP implements the OnkyoCommand for network/TCP communication
 type OnkyoCommandTCP struct {
     Msg string
 }
 
+// SetMessage sets the message to construct the frame with
 func (c *OnkyoCommandTCP) SetMessage(msg string) {
     c.Msg = msg
 }
 
-func IntMax(i int, ints... int) int {
-    max := i
-    for _, ci := range ints {
-        if ci > max {
-            max = ci
-        }
-    }
-    return max
-}
-
+// Bytes returns the []byte of the constructed message
 func (c *OnkyoCommandTCP) Bytes() ([]byte, error) {
     buf := new(bytes.Buffer)
     if c.Msg == "" {
-        return nil, errors.New("OnkyoCommandTCP:Bytes(): Empty message, cannot construct emtpy command")
+        return nil, errors.New("empty message, cannot construct emtpy command")
     }
     msg := c.Msg
     if msg[0] != '!' {
@@ -58,6 +54,7 @@ func (c *OnkyoCommandTCP) Bytes() ([]byte, error) {
     return buf.Bytes(), nil
 }
 
+// Parse parses an incoming []byte, validates and extracts the message
 func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
     var magic [4]byte
     var headersize uint32
@@ -67,13 +64,13 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
 
     if (len(buf) < 16) {
         // Smaller than header
-        return errors.New("OnkyoCommandTCP:Parse(): buffer length smaller than header size")
+        return errors.New("buffer length smaller than header size")
     }
     // Determine endpos
     endpos := bytes.IndexByte(buf[16:], 0x19) + 16
     if endpos < 16 {
         // No end position
-        return errors.New("OnkyoCommandTCP:Parse(): EOF byte missing!")
+        return errors.New("missing EOF character to terminate the message")
     }
     nlpos := bytes.IndexByte(buf[endpos:], 0x0A) + endpos
     crpos := bytes.IndexByte(buf[endpos:], 0x0D) + endpos
@@ -84,13 +81,13 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
         return err
     }
     if string(magic[0:4]) != "ISCP" {
-        return errors.New("OnkyoCommandTCP:Parse(): magic mismatch")
+        return errors.New("onkyo message magic mismatch")
     }
     if err := binary.Read(b, binary.BigEndian, &headersize); err != nil {
         return err
     }
     if headersize != 16 {
-        return errors.New("OnkyoCommandTCP:Parse(): header length not 16")
+        return errors.New("onkyo message header length not 16")
     }
     if err := binary.Read(b, binary.BigEndian, &datalen); err != nil {
         return err
@@ -99,27 +96,26 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
         return err
     }
     if version != 1 {
-        return errors.New("OnkyoCommandTCP:Parse(): unknown version, expected 1")
+        return fmt.Errorf("unknown onkyo message version, expected 1, got %d", version)
     }
     if err := binary.Read(b, binary.BigEndian, &rfu); err != nil {
         return err
     }
-    rxdatalen := uint32(len(buf[16:IntMax(endpos, nlpos, crpos)])) + 1
+    rxdatalen := uint32(len(buf[16:intMax(endpos, nlpos, crpos)])) + 1
     if rxdatalen != datalen {
-        return errors.New(
-            fmt.Sprintf("OnkyoCommandTCP:Parse(): data length mismatch: %d != expected %d",
+        return fmt.Errorf("onkyo message data length mismatch: %d != expected %d",
                 rxdatalen, datalen,
-            ))
+            )
     }
     if datalen < 2 {
-        return errors.New("OnkyoCommandTCP:Parse(): data too short, expected minimum length of 2")
+        return fmt.Errorf("onkyo message too short, expected minimum length of 2, got %d", datalen)
     }
     // Get the message
     if buf[16] != '!' {
-        return errors.New("OnkyoCommandTCP:Parse(): does not start with expected '!'")
+        return errors.New("onkyo message does not start with expected '!'")
     }
     if buf[17] != '1' {
-        return errors.New("OnkyoCommandTCP:Parse(): Message not coming from receiver, don't know how to handle.")
+        return errors.New("onkyo message not coming from receiver, don't know how to handle")
     }
     // set the message - strip the "!1" start
     c.Msg = string(buf[18:endpos])
@@ -127,6 +123,7 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
     return nil
 }
 
+// Message returns the message associated with the command
 func (c *OnkyoCommandTCP) Message() (string) {
     return c.Msg
 }
@@ -134,18 +131,33 @@ func (c *OnkyoCommandTCP) Message() (string) {
 /////////////////////////////////////////////////////////////////////////////
 // TODO: Serial implementation of the messages
 
+// SetMessage sets the message to construct the frame with
 func (c *OnkyoCommandSerial) SetMessage(msg string) {
     c.Msg = msg
 }
 
+// Bytes returns the []byte of the constructed message
 func (c *OnkyoCommandSerial) Bytes() ([]byte, error) {
-    return nil, errors.New("OnkyoCommandSerial not implemented")
+    return nil, errors.New("not implemented: OnkyoCommandSerial")
 }
 
+// Parse parses an incoming []byte, validates and extracts the message
 func (c *OnkyoCommandSerial) Parse(buf []byte) (error) {
-    return errors.New("OnkyoCommandSerial not implemented")
+    return errors.New("not implemented: OnkyoCommandSerial")
 }
 
+// Message returns the message associated with the command
 func (c *OnkyoCommandSerial) Message() (string) {
     return c.Msg
 }
+
+func intMax(i int, ints... int) int {
+    max := i
+    for _, ci := range ints {
+        if ci > max {
+            max = ci
+        }
+    }
+    return max
+}
+

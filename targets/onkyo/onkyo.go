@@ -1,58 +1,63 @@
 package onkyo
 
 import "strings"
+//import "github.com/tarm/goserial"
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/targets"
-//import "github.com/tarm/goserial"
 
+// Transport indicates the transport type the Onkyo Reciever uses
 type Transport int
 const (
-    TRANSPORT_TCP    Transport = iota
-    TRANSPORT_SERIAL Transport = iota
+    // TransportTCP indicates the useage of TCP
+    TransportTCP   Transport = iota
+    // TransportSerial indicates the useage of a Serial line
+    TransportSerial Transport = iota
 )
 
+// OnkyoReceiver structure
 type OnkyoReceiver struct {
-    modelname string
-    name string
-    transport Transport
+    Modelname string
+    Name string
+    Transport Transport
 
-    serialdev string
-    host string
-    port int
-    model string
-    dest_area string // DX: North America; XX: Europe/Asia; JJ: Japan
-    identifier string
+    Serialdev string
+    Host string
+    Port int
+    Model string
+    DestArea string // DX: North America; XX: Europe/Asia; JJ: Japan
+    Identifier string
 }
 
 
+// Register registers the Onkyo Module in the target manager
 func Register() {
-    targets.RegisterTarget("onkyo", CreateOnkyoReceiver)
+    targets.RegisterTarget("onkyo", createOnkyoReceiver)
     //targets.RegisterAutoDetect(OnkyoAutoDetect)
 }
 
-func (r *OnkyoReceiver) processparams(params map[string]string) bool {
+func (r OnkyoReceiver) processparams(pname string, params map[string]string) bool {
     if params["connection"] == "serial" {
-        r.transport = TRANSPORT_SERIAL
+        r.Transport = TransportSerial
     } else {
         // By default assume TCP
-        r.transport = TRANSPORT_TCP
+        r.Transport = TransportTCP
     }
-
-    switch r.transport {
-    case TRANSPORT_SERIAL:
+    r.Name = pname
+    switch r.Transport {
+    case TransportSerial:
         if _, ok := params["device"]; !ok {
             return false
         }
-        r.serialdev = params["device"]
+        r.Serialdev = params["device"]
         // Baudrate is fixed: 9600
-    case TRANSPORT_TCP:
+    case TransportTCP:
         if _, ok := params["host"]; !ok {
             // No host specified - attempt auto discovery
             if _, ok := params["devname"]; !ok {
                 clog.Error("No 'host' or 'devname' parameter specified")
                 return false
             }
-            r.name = params["devname"]
+            r.Identifier = params["id"]
         } else if _, ok := params["port"]; ok {
             // Host and port specified
         } else if strings.Contains(params["ip"], ":") {
@@ -64,7 +69,7 @@ func (r *OnkyoReceiver) processparams(params map[string]string) bool {
     return true
 }
 
-func CreateOnkyoReceiver(name string, params map[string]string) (t targets.Target, ok bool) {
+func createOnkyoReceiver(name string, params map[string]string) (t targets.Target, ok bool) {
     clog.Debug("Creating Onkyo Receiver %s", name)
     var ret OnkyoReceiver
 
@@ -75,7 +80,8 @@ func CreateOnkyoReceiver(name string, params map[string]string) (t targets.Targe
     return
 }
 
-func (o OnkyoReceiver) SendCommand(cmd string, args ...string) bool {
+// SendCommand sends a command to the receiver
+func (r OnkyoReceiver) SendCommand(cmd string, args ...string) bool {
     clog.Debug("Sending command: %s (%v)", cmd, args)
     return false
 }
