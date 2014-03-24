@@ -2,4 +2,4 @@
 /go-claw*
 /sample
 /Makefile
-*_test.go
+#*_test.go
