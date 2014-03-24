@@ -112,12 +112,20 @@ func OnkyoFind(model, id string, timeout int) *TargetDevice {
                 if (!ok) {
                     return nil
                 }
+                if (model == "") && (id == "") { 
+                    clog.Warn("No onkyo receiver specified, accepting first match: %s (%s)",
+                            s.Params["model"],
+                            s.Params["id"],
+                        )
+                    return s
+                }
                 if (s.Model != model) {
                     continue
                 }
                 if (id == "") {
                     clog.Warn("no identifier speficier, picking first available with id '%s'",
-                        s.Params["id"])
+                            s.Params["id"],
+                        )
                     return s
                 }
                 if (id == s.Params["id"]) {

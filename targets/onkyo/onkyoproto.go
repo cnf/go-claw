@@ -4,6 +4,8 @@ import "fmt"
 import "bytes"
 import "errors"
 import "encoding/binary"
+//import "encoding/hex"
+//import "github.com/cnf/go-claw/clog"
 
 // OnkyoFrame describes the main interface for an object to parse and
 // construct an Onkyo remote control message
@@ -51,9 +53,10 @@ func (c *OnkyoFrameTCP) Bytes() []byte {
     binary.Write(buf, binary.BigEndian, uint8(0)) // Reserved
     binary.Write(buf, binary.BigEndian, uint8(0)) // Reserved
     binary.Write(buf, binary.BigEndian, []byte(msg)) // Data
-    binary.Write(buf, binary.BigEndian, uint8(0x19)) // EOF
     binary.Write(buf, binary.BigEndian, uint8(0x0D)) // Carriage return
-    binary.Write(buf, binary.BigEndian, uint8(0x0A)) // Line feed
+    //binary.Write(buf, binary.BigEndian, uint8(0x19)) // EOF
+    //binary.Write(buf, binary.BigEndian, uint8(0x0A)) // Line feed
+    //clog.Debug(hex.Dump(buf.Bytes()))
     return buf.Bytes()
 }
 
@@ -64,19 +67,19 @@ func (c *OnkyoFrameTCP) Parse(buf []byte) (error) {
     var datalen uint32
     var version uint8
     var rfu [3]byte
-
+    //clog.Debug("----- PARSE ----")
+    //clog.Debug(hex.Dump(buf))
     if (len(buf) < 16) {
         // Smaller than header
         return errors.New("buffer length smaller than header size of an onkyo message")
     }
     // Determine endpos
-    endpos := bytes.IndexByte(buf[16:], 0x19) + 16
-    if endpos < 16 {
-        // No end position
-        return errors.New("missing EOF character to terminate the onkyo message")
+    endpos := bytes.IndexByte(buf[16:], 0x19)
+    nlpos := bytes.IndexByte(buf[16:], 0x0A)
+    crpos := bytes.IndexByte(buf[16:], 0x0D)
+    if (endpos < 0) {
+        endpos = intMinPositive(endpos, nlpos, crpos)
     }
-    nlpos := bytes.IndexByte(buf[endpos:], 0x0A) + endpos
-    crpos := bytes.IndexByte(buf[endpos:], 0x0D) + endpos
 
     // parse the header
     b := bytes.NewReader(buf[0:16])
@@ -104,7 +107,7 @@ func (c *OnkyoFrameTCP) Parse(buf []byte) (error) {
     if err := binary.Read(b, binary.BigEndian, &rfu); err != nil {
         return err
     }
-    rxdatalen := uint32(len(buf[16:intMax(endpos, nlpos, crpos)])) + 1
+    rxdatalen := uint32(len(buf[16:intMax(endpos, nlpos, crpos)+16])) + 1
     if rxdatalen != datalen {
         return fmt.Errorf("onkyo message data length mismatch: %d != expected %d",
                 rxdatalen, datalen,
@@ -120,8 +123,9 @@ func (c *OnkyoFrameTCP) Parse(buf []byte) (error) {
     if buf[17] != '1' {
         return errors.New("onkyo message not coming from receiver, don't know how to handle")
     }
+    //clog.Debug("End position: %d", endpos+16)
     // set the message - strip the "!1" start
-    c.Msg = string(buf[18:endpos])
+    c.Msg = string(buf[18:endpos+15])
 
     return nil
 }
@@ -155,6 +159,28 @@ func (c *OnkyoFrameSerial) Parse(buf []byte) (error) {
 // Message returns the message associated with the command
 func (c *OnkyoFrameSerial) Message() (string) {
     return c.Msg
+}
+
+func intMinPositive(i int, ints... int) int {
+    min := i
+    for _, ci := range ints {
+        if (min < 0) && (ci >= 0) {
+            min = ci
+        } else if (ci >= 0) && (ci < min) {
+            min = ci
+        }
+    }
+    return min
+}
+
+func intMin(i int, ints... int) int {
+    min := i
+    for _, ci := range ints {
+        if ci < min {
+            min = ci
+        }
+    }
+    return min
 }
 
 func intMax(i int, ints... int) int {
