@@ -92,6 +92,9 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     var cmd string
     var args string
     var rok bool
+    // FIXME: NEED NEW MODES!
+    // FIXME: Things crash here sometimes
+    if _, ok := d.modemap[d.activemode]; !ok { d.activemode = "default" }
     if val, ok := d.modemap[d.activemode].Keys[rc.Key]; ok {
         for _, v := range val {
             mod, cmd, args, rok = d.resolve(v)
