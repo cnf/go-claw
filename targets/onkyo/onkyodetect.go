@@ -24,10 +24,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     port := strconv.Itoa(onkyoPort)
 
     cmd := &OnkyoCommandTCP{onkyoMagic}
-    transmitStr, err := cmd.Bytes()
-    if err != nil {
-        return
-    }
+    transmitStr := cmd.Bytes()
 
     udpaddr, err := net.ResolveUDPAddr("udp4", ":0")
     if err != nil {
@@ -67,7 +64,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
             continue
         }
         //fmt.Printf("Got response from: %v (len: %d):\n", raddr, rlen)
-        resp := &OnkyoCommandTCP{}
+        resp := new(OnkyoCommandTCP)
         if err := resp.Parse(buf[0:rlen]); err != nil {
             // fmt.Printf("Error parsing Onkyo response: %s", err.Error())
             clog.Warn("targets/onkyo: Parse Onkyo Response: %s", err.Error())
@@ -94,21 +91,41 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
         tgt.Model = splitmsg[0]
         tgt.Params = make(map[string]string)
         tgt.Params["id"] = splitmsg[3]
-        tgt.Params["Model"] = splitmsg[0]
+        tgt.Params["model"] = splitmsg[0]
         tgt.Detected = make(map[string]string)
-        tgt.Detected["port"] = splitmsg[1]
-        host, _, err := net.SplitHostPort(raddr.String())
-        if err != nil {
-            clog.Warn("Could not split the host/port for '%s'", raddr.String())
-            continue
-        }
-        tgt.Detected["ip"] = host
+        tgt.Detected["host"] = raddr.String()
 
         ch <- tgt
 
         // Once we got a response, wait maximum 50ms for other responses
         conn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Millisecond))
     }
+}
+
+// OnkyoAutoDetect is used to get a list of Onkyo receivers detected on the network
+func OnkyoFind(model, id string, timeout int) *TargetDevice {
+    ch := make(chan *TargetDevice)
+    go runOnkyoDetect(ch, timeout)
+    for {
+        select {
+            case s, ok := <- ch:
+                if (!ok) {
+                    return nil
+                }
+                if (s.Model != model) {
+                    continue
+                }
+                if (id == "") {
+                    clog.Warn("no identifier speficier, picking first available with id '%s'",
+                        s.Params["id"])
+                    return s
+                }
+                if (id == s.Params["id"]) {
+                    return s
+                }
+        }
+    }
+    return nil
 }
 
 // OnkyoAutoDetect is used to get a list of Onkyo receivers detected on the network
@@ -124,9 +141,6 @@ func OnkyoAutoDetect(timeout int) []TargetDevice {
                     return ret
                 }
                 ret = append(ret, *s)
-            //case <- timer.C:
-                //fmt.Printf("Timeout!\n")
-                //return ret
         }
     }
     return ret

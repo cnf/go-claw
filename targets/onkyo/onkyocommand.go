@@ -9,9 +9,9 @@ import "encoding/binary"
 // construct an Onkyo remote control message
 type OnkyoCommand interface {
     SetMessage(string)
-    Message() (string)
-    Bytes() ([]byte, error)
-    Parse([]byte) (error)
+    Message() string
+    Bytes() []byte
+    Parse([]byte) error
 }
 
 // OnkyoCommandSerial implements the OnkyoCommand for serial communication
@@ -28,13 +28,16 @@ type OnkyoCommandTCP struct {
 func (c *OnkyoCommandTCP) SetMessage(msg string) {
     c.Msg = msg
 }
+func NewOnkyoCommandTCP(msg string) *OnkyoCommandTCP {
+    return &OnkyoCommandTCP{Msg: msg}
+}
 
 // Bytes returns the []byte of the constructed message
-func (c *OnkyoCommandTCP) Bytes() ([]byte, error) {
-    buf := new(bytes.Buffer)
-    if c.Msg == "" {
-        return nil, errors.New("empty message, cannot construct emtpy command")
+func (c *OnkyoCommandTCP) Bytes() []byte {
+    if (c.Msg == "") {
+        return make([]byte, 0)
     }
+    buf := new(bytes.Buffer)
     msg := c.Msg
     if msg[0] != '!' {
         msg = "!1" + msg
@@ -51,7 +54,7 @@ func (c *OnkyoCommandTCP) Bytes() ([]byte, error) {
     binary.Write(buf, binary.BigEndian, uint8(0x19)) // EOF
     binary.Write(buf, binary.BigEndian, uint8(0x0D)) // Carriage return
     binary.Write(buf, binary.BigEndian, uint8(0x0A)) // Line feed
-    return buf.Bytes(), nil
+    return buf.Bytes()
 }
 
 // Parse parses an incoming []byte, validates and extracts the message
@@ -64,13 +67,13 @@ func (c *OnkyoCommandTCP) Parse(buf []byte) (error) {
 
     if (len(buf) < 16) {
         // Smaller than header
-        return errors.New("buffer length smaller than header size")
+        return errors.New("buffer length smaller than header size of an onkyo message")
     }
     // Determine endpos
     endpos := bytes.IndexByte(buf[16:], 0x19) + 16
     if endpos < 16 {
         // No end position
-        return errors.New("missing EOF character to terminate the message")
+        return errors.New("missing EOF character to terminate the onkyo message")
     }
     nlpos := bytes.IndexByte(buf[endpos:], 0x0A) + endpos
     crpos := bytes.IndexByte(buf[endpos:], 0x0D) + endpos
@@ -131,14 +134,17 @@ func (c *OnkyoCommandTCP) Message() (string) {
 /////////////////////////////////////////////////////////////////////////////
 // TODO: Serial implementation of the messages
 
+func NewOnkyoCommandSerial(msg string) *OnkyoCommandSerial {
+    return &OnkyoCommandSerial{Msg: msg}
+}
 // SetMessage sets the message to construct the frame with
 func (c *OnkyoCommandSerial) SetMessage(msg string) {
     c.Msg = msg
 }
 
 // Bytes returns the []byte of the constructed message
-func (c *OnkyoCommandSerial) Bytes() ([]byte, error) {
-    return nil, errors.New("not implemented: OnkyoCommandSerial")
+func (c *OnkyoCommandSerial) Bytes() []byte {
+    return nil
 }
 
 // Parse parses an incoming []byte, validates and extracts the message
