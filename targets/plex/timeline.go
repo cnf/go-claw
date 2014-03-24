@@ -116,9 +116,9 @@ func (p *Plex) subscriberLoop() {
             time.Sleep(5 * time.Second)
             continue
         }
-        defer resp.Body.Close()
         // FIXME: do something useful
         // body, err := ioutil.ReadAll(resp.Body)
+        resp.Body.Close()
         time.Sleep(30 * time.Second)
     }
 }
