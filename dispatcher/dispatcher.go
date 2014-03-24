@@ -21,7 +21,6 @@ type Dispatcher struct {
 func (d *Dispatcher) Start() {
     defer d.cs.Close()
     d.activemode = "default"
-    d.activemode = "plex"
     d.keytimeout = time.Duration(120 * time.Millisecond) 
     d.readConfig()
     d.setupListeners()
