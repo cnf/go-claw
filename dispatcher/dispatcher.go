@@ -105,7 +105,7 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
         }
         return true
     } else {
-        clog.Info("Dispatch: key `%s` Not found in any mode.")
+        clog.Info("Dispatch: key `%s` Not found in any mode.", rc.Key)
         return false
     }
     if !rok {
