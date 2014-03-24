@@ -46,17 +46,19 @@ func (p *Plex) subscribe() {
 }
 
 func (p *Plex) listen() {
-    http.HandleFunc("/", p.handler)
     l, err := net.Listen("tcp", ":0")
     if err != nil { return }
     lport := l.Addr().(*net.TCPAddr).Port
+    addr := fmt.Sprintf(":%d", lport)
+
+    s := &http.Server{Addr: addr, Handler: p}
     p.listenport = lport
     clog.Debug("Plex: subscription listener on port `%d`", lport)
 
-    http.Serve(l, nil)
+    clog.Debug("Plex: %$ v", s.Serve(l))
 }
 
-func (p *Plex) handler(w http.ResponseWriter, r *http.Request) {
+func (p *Plex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     body, rerr := ioutil.ReadAll(r.Body)
     if rerr != nil { return }
     var mc mediaContainerXML
