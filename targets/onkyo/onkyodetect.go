@@ -23,7 +23,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     addrs := tools.BroadcastAddrs()
     port := strconv.Itoa(onkyoPort)
 
-    cmd := &OnkyoCommandTCP{onkyoMagic}
+    cmd := &OnkyoFrameTCP{onkyoMagic}
     transmitStr := cmd.Bytes()
 
     udpaddr, err := net.ResolveUDPAddr("udp4", ":0")
@@ -64,7 +64,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
             continue
         }
         //fmt.Printf("Got response from: %v (len: %d):\n", raddr, rlen)
-        resp := new(OnkyoCommandTCP)
+        resp := new(OnkyoFrameTCP)
         if err := resp.Parse(buf[0:rlen]); err != nil {
             // fmt.Printf("Error parsing Onkyo response: %s", err.Error())
             clog.Warn("targets/onkyo: Parse Onkyo Response: %s", err.Error())
