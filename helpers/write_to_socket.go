@@ -9,17 +9,21 @@ import "os"
 func echoServer(c net.Conn) {
     buffrw := bufio.NewWriter(c)
     defer c.Close()
-    var list = []string{"000000037ff07be9 00 KEY_PLAY PH00SBLe",
-                        "000000037ff07bdd 00 KEY_OK PH00SBLe",
-                        "000000037ff07bef 00 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 01 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 02 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 03 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 04 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 05 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 06 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bef 07 KEY_VOLUMEUP PH00SBLe",
-                        "000000037ff07bdd 00 KEY_OK PH00SBLe",}
+    var list = []string{
+            "000000037ff07be9 00 KEY_POWER PH00SBLe",
+            "000000037ff07be9 00 KEY_PLAY PH00SBLe",
+            "000000037ff07bdd 00 KEY_OK PH00SBLe",
+            "000000037ff07bef 00 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 01 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 02 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 03 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 04 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 05 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 06 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bef 07 KEY_VOLUMEUP PH00SBLe",
+            "000000037ff07bdd 00 KEY_OK PH00SBLe",
+            "000000037ff07be9 00 KEY_POWER PH00SBLe",
+        }
     for {
         for _, element := range list {
             _, err := buffrw.WriteString(element+"\n")
