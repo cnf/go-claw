@@ -32,6 +32,7 @@ type OnkyoReceiver struct {
 
     con net.Conn
     mu sync.Mutex
+    lastsend time.Time
 }
 
 
@@ -160,9 +161,15 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, bool) {
         }
         switch r.Transport {
         case TransportTCP:
-            clog.Debug("Sending command to Onkyo: %s", cmd)
-            r.con.SetWriteDeadline(time.Now().Add(time.Duration(500) * time.Millisecond))
+            // Prevent sending a next command within 50ms
+            tdiff := time.Since(r.lastsend)
+            if tdiff < (time.Duration(50) * time.Millisecond) {
+                time.Sleep((time.Duration(50) * time.Millisecond) - tdiff)
+            }
+            //clog.Debug("Sending command to Onkyo: %s", cmd)
+            r.con.SetWriteDeadline(time.Now().Add(time.Duration(300) * time.Millisecond))
             _, err := r.con.Write(NewOnkyoFrameTCP(cmd).Bytes())
+            r.lastsend = time.Now()
             if (err != nil) {
                 // check error type
                 if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
@@ -198,6 +205,7 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, bool) {
                 clog.Error("Could not parse Onkyo response: %s", err.Error())
                 return "", false
             }
+            r.lastsend = time.Now()
             return rcmd.Message(), true
         case TransportSerial:
             return "", false
@@ -216,6 +224,8 @@ func createOnkyoReceiver(name string, params map[string]string) (targets.Target,
         clog.Error(err.Error())
         return nil, false
     }
+    // 5 seconds in the past
+    ret.lastsend = time.Now().Add(time.Duration(-5) * time.Second)
     if !ret.doConnect() {
         clog.Error("could not connect to Onkyo Reciever!")
     }
