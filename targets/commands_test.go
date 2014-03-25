@@ -11,7 +11,6 @@ var paramstr = `
             "parameters": []
         },
         "VolUp": {
-            "name": "VolUp",
             "description": "Volume Up",
             "parameters": []
         },
@@ -43,24 +42,48 @@ var paramstr = `
 }
 `
 
+func printCommands(cmds map[string]*Command) {
+    for k, v := range cmds {
+        fmt.Printf("Command: '%s':\n", k)
+        fmt.Printf("    Name       : '%s'\n", v.Name)
+        fmt.Printf("    Description: '%s'\n", v.Description)
+
+        for _, p := range v.Parameters {
+            fmt.Printf("    Parameter: %s\n", p.Name)
+            fmt.Printf("       Description: '%s'\n", p.Description)
+            fmt.Printf("       Optional   : '%s'\n", p.Optional)
+            fmt.Printf("       Type       : '%s'\n", p.Type)
+            fmt.Printf("       Validation : '%s'\n", p.Validation)
+        }
+    }
+}
+
+func Test_CommandList(t *testing.T) {
+    cmds := map[string]*Command {
+        "Test": NewCommand("Test", "Test Command",
+                NewParameter("Amount", "Test parameter", true).SetRange(0,100),
+            ),
+        "Test2": NewCommand("Test2", "Another test command",
+                NewParameter("prm1", "blabla", false).SetList("option1", "option2"),
+                NewParameter("prm2", "blabla", false).SetRegex("[a-z]*"),
+            ),
+    }
+    printCommands(cmds)
+}
+
 func Test_CommandParser(t *testing.T) {
     cmds, err := ParseCommands(paramstr)
     if err != nil {
         t.Errorf("Got error: %s", err.Error())
     }
-    for k, v := range cmds {
-        fmt.Printf("Command: %s: %v\n", k, v)
-        for j := range v.Parameters {
-            fmt.Printf("    Parameter: %v\n", v.Parameters[j])
-        }
-    }
+    printCommands(cmds)
 }
 
 func testValidation(t *testing.T, ptype string, validstr, val, expect string, expecterr bool) {
     cmd := CommandParameter{
-        NameStr: "validtest",
-        DescriptionStr: "parameter validation",
-        Paramtype: ptype,
+        Name: "validtest",
+        Description: "parameter validation",
+        Type: ptype,
         Validation: validstr,
     }
     v, err := cmd.Validate(val)
