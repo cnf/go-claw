@@ -114,14 +114,14 @@ func parseHeader(h []byte) (datalen uint32, err error) {
 func (c *OnkyoFrameTCP) parseData(buf []byte, datalen uint32) error {
     // Determine endpos
     endpos := intMinPositive(
-            bytes.IndexByte(buf, 0x19),
+            bytes.IndexByte(buf, 0x1A), // ^Z ??
+            bytes.IndexByte(buf, 0x19), // EOT
             bytes.IndexByte(buf, 0x0A),
             bytes.IndexByte(buf, 0x0D),
         )
     if endpos < 0 {
         return fmt.Errorf("onkyo message is missing data terminator")
     }
-
     msgdata := buf[0:endpos]
 
     if len(msgdata) < 2 {
