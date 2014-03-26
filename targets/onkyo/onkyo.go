@@ -5,7 +5,7 @@ import "net"
 import "errors"
 import "time"
 import "sync"
-import "fmt"
+//import "fmt"
 //import "encoding/hex"
 //import "github.com/tarm/goserial"
 import "github.com/cnf/go-claw/clog"
@@ -149,7 +149,7 @@ func (r *OnkyoReceiver) processparams(pname string, params map[string]string) er
 
 func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
     errcnt := 0
-    buf := make([]byte, 1024)
+    //buf := make([]byte, 1024)
     for {
         if (errcnt >= 3) {
             return "", errors.New("Could not send command: retry count exceeded")
@@ -182,25 +182,15 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
                 continue;
             }
             // Read the response
-            r.con.SetReadDeadline(time.Now().Add(time.Duration(100) * time.Millisecond))
-            rlen, err := r.con.Read(buf)
-            if err != nil {
-                nerr, ok := err.(net.Error)
-                if ok && nerr.Timeout() {
-                    clog.Warn("timeout receiving Onkyo response for command '%s'", cmd)
-                } else if ok && nerr.Temporary() {
-                    clog.Warn("temporary error reading Onkyo command response: %s", err.Error())
-                } else {
-                    clog.Error("error reading Onkyo command response: %s", err.Error())
-                    r.con.Close()
-                    r.con = nil
+            var rcmd *OnkyoFrameTCP
+            for {
+                r.con.SetReadDeadline(time.Now().Add(time.Duration(4000) * time.Millisecond))
+                rcmd, err = ReadOnkyoFrameTCP(r.con)
+                clog.Debug("Onkyo '%s' response: '%s'", cmd, rcmd.Message())
+                if (rcmd.Message()[0:3] == cmd[0:3]) {
+                    clog.Debug("Onkyo response OK")
+                    break
                 }
-                errcnt++
-                continue
-            }
-            rcmd := &OnkyoFrameTCP{}
-            if err := rcmd.Parse(buf[0:rlen]); err != nil {
-                return "", fmt.Errorf("could not parse Onkyo response: %s", err.Error())
             }
             r.lastsend = time.Now()
             return rcmd.Message(), nil
