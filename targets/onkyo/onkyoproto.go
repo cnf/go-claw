@@ -9,6 +9,8 @@ import "encoding/binary"
 //import "encoding/hex"
 //import "github.com/cnf/go-claw/clog"
 
+const OnkyoMagic = "ISCP"
+
 // OnkyoFrame describes the main interface for an object to parse and
 // construct an Onkyo remote control message
 type OnkyoFrame interface {
@@ -36,6 +38,14 @@ func NewOnkyoFrameTCP(msg string) *OnkyoFrameTCP {
     return &OnkyoFrameTCP{Msg: msg}
 }
 
+func ReadOnkyoFrameTCP(r io.Reader) (*OnkyoFrameTCP, error) {
+    ret := &OnkyoFrameTCP{}
+    if err := ret.ReadFrom(r); err != nil {
+        return nil, err
+    }
+    return ret, nil
+}
+
 // Bytes returns the []byte of the constructed message
 func (c *OnkyoFrameTCP) Bytes() []byte {
     if (c.Msg == "") {
@@ -61,8 +71,6 @@ func (c *OnkyoFrameTCP) Bytes() []byte {
     //clog.Debug(hex.Dump(buf.Bytes()))
     return buf.Bytes()
 }
-
-const OnkyoMagic = "ISCP"
 
 
 func parseHeader(h []byte) (datalen uint32, err error) {
