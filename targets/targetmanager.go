@@ -20,16 +20,6 @@ func NewTargetManager() *TargetManager {
     return ret
 }
 
-func validateTargetName(name string) error {
-    if name == "" {
-        return errors.New("a target name cannot be empty")
-    }
-    if strings.ContainsAny(name, "\t\n\r :@!+=*") {
-        return fmt.Errorf("target name '%s' cannot contain whitespace, ':', '@', '!', '+', '=' or '*' characters")
-    }
-    return nil
-}
-
 // Adds a new target using the specified module, given the specified name and parameters
 func (t *TargetManager) Add(module, name string, params map[string]string) error {
     // Validate name
@@ -80,10 +70,74 @@ func (t *TargetManager) Remove(name string) error {
     return nil
 }
 
-func (t *TargetManager) Close() {
+func (t *TargetManager) Stop() error {
     for k := range t.targets {
-        t.Remove(k)
+        if err := t.Remove(k); err != nil {
+            return err
+        }
     }
+    t.targets    = make(map[string]Target)
+    t.target_cmds = make(map[string]map[string]*Command)
+    return nil
+}
+
+func (t *TargetManager) RunCommand(cmdstring string) error {
+    splitstr := strings.SplitN(cmdstring, "::", 2)
+    if len(splitstr) != 2 {
+        return fmt.Errorf("invalid command string '%s', expected it to contain '::'", cmdstring)
+    }
+    // Validate the name of the target we just parsed out
+    if err := validateTargetName(splitstr[0]); err != nil {
+        return err
+    }
+    tgtname := splitstr[0]
+
+    if _, ok := t.targets[tgtname]; !ok {
+        return fmt.Errorf("command '%s' uses a target '%s' that does not exist", cmdstring, tgtname)
+    }
+
+    // Split the command
+    splitcmd := splitQuoted(splitstr[1])
+    if len(splitcmd)  == 0 {
+        return fmt.Errorf("empty target command in '%s'", cmdstring)
+    }
+    tcommand := splitcmd[0]
+    tparams := splitcmd[1:]
+
+    // Check if the instance provided a commands list to check
+    if _, ok := t.target_cmds[tgtname]; ok && t.target_cmds[tgtname] != nil {
+        // Check if the command exists for this target
+        if _, ok := t.target_cmds[tgtname][tcommand]; !ok {
+            return fmt.Errorf("command '%s' not recognized by target '%s'", tcommand, tgtname)
+        }
+        // Validate all parameters
+        pc := 0
+        tparams_n := make([]string, 0)
+        for prm := range t.target_cmds[tgtname][tcommand].Parameters {
+            if pc < len(tparams) {
+                // Parameter not present, check if required
+                if !t.target_cmds[tgtname][tcommand].Parameters[prm].Optional {
+                    return fmt.Errorf("non-optional parameter '%s' missing for command '%s', target '%s'",
+                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            tcommand,
+                            tgtname,
+                        )
+                }
+            } else {
+                pval, err := t.target_cmds[tgtname][tcommand].Parameters[prm].Validate(tparams[pc])
+                if (err != nil) {
+                    // validation returned an error
+                    return err
+                }
+                tparams_n = append(tparams_n, pval)
+            }
+            pc++
+        }
+        // replace the original parameters with the validated parameters
+        tparams = tparams_n
+    }
+    // Run the command
+    return t.targets[tgtname].SendCommand(tcommand, tparams...)
 }
 
 func splitQuoted(s string) []string {
@@ -170,59 +224,13 @@ func splitQuoted(s string) []string {
     return ret
 }
 
-func (t *TargetManager) RunCommand(cmdstring string) error {
-    splitstr := strings.SplitN(cmdstring, "::", 2)
-    if len(splitstr) != 2 {
-        return fmt.Errorf("invalid command string '%s', expected it to contain '::'", cmdstring)
+func validateTargetName(name string) error {
+    if name == "" {
+        return errors.New("a target name cannot be empty")
     }
-    // Validate the name of the target we just parsed out
-    if err := validateTargetName(splitstr[0]); err != nil {
-        return err
+    if strings.ContainsAny(name, "\t\n\r :@!+=*") {
+        return fmt.Errorf("target name '%s' cannot contain whitespace, ':', '@', '!', '+', '=' or '*' characters")
     }
-    tgtname := splitstr[0]
-
-    if _, ok := t.targets[tgtname]; !ok {
-        return fmt.Errorf("command '%s' uses a target '%s' that does not exist", cmdstring, tgtname)
-    }
-
-    // Split the command
-    splitcmd := splitQuoted(splitstr[1])
-    if len(splitcmd)  == 0 {
-        return fmt.Errorf("empty target command in '%s'", cmdstring)
-    }
-    tcommand := splitcmd[0]
-    tparams := splitcmd[1:]
-
-    if _, ok := t.target_cmds[tgtname]; ok && t.target_cmds[tgtname] != nil {
-        // The command specified a command list, validate!
-        if _, ok := t.target_cmds[tgtname][tcommand]; !ok {
-            return fmt.Errorf("command '%s' not recognized by target '%s'", tcommand, tgtname)
-        }
-        pc := 0
-        tparams_n := make([]string, 0)
-        for prm := range t.target_cmds[tgtname][tcommand].Parameters {
-            if pc < len(tparams) {
-                // Parameter not present, check if required
-                if !t.target_cmds[tgtname][tcommand].Parameters[prm].Optional {
-                    return fmt.Errorf("non-optional parameter '%s' missing for command '%s', target '%s'",
-                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
-                            tcommand,
-                            tgtname,
-                        )
-                }
-            } else {
-                pval, err := t.target_cmds[tgtname][tcommand].Parameters[prm].Validate(tparams[pc])
-                if (err != nil) {
-                    // validation returned an error
-                    return err
-                }
-                tparams_n = append(tparams_n, pval)
-            }
-            pc++
-        }
-        // replace the original parameters with the validated parameters
-        tparams = tparams_n
-    }
-    // Run the command
-    return t.targets[tgtname].SendCommand(tcommand, tparams...)
+    return nil
 }
+

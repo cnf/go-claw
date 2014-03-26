@@ -1,6 +1,5 @@
 package dispatcher
 
-import "strings"
 import "time"
 
 import "github.com/cnf/go-claw/listeners"
@@ -12,7 +11,7 @@ type Dispatcher struct {
     config Config
     keytimeout time.Duration
     listenermap map[string]*listeners.Listener
-    targetmap map[string]targets.Target
+    targetmanager *targets.TargetManager
     modemap map[string]*Mode
     activemode string
     cs *listeners.CommandStream
@@ -20,7 +19,6 @@ type Dispatcher struct {
 
 func (d *Dispatcher) Start() {
     defer d.cs.Close()
-    d.activemode = "default"
     d.keytimeout = time.Duration(120 * time.Millisecond)
     d.readConfig()
     d.setupListeners()
@@ -55,6 +53,7 @@ func (d *Dispatcher) setupListeners() {
 
 func (d *Dispatcher) setupModes() {
     d.modemap = make(map[string]*Mode)
+
     for k, v := range d.config.Modes {
         clog.Info("Setting up mode: %s", k)
         d.modemap[k] = &Mode{Keys: make(map[string][]string)}
@@ -67,17 +66,27 @@ func (d *Dispatcher) setupModes() {
             }
         }
     }
+
+    // Ensure the "default" mode map exists
+    if _, ok := d.modemap["default"]; !ok {
+        clog.Warn("Warning: 'default' modemap did not exist - adding dummy")
+        d.modemap["default"] = &Mode{Keys: make(map[string][]string)}
+    }
+    d.setMode("default")
 }
 
 func (d *Dispatcher) setupTargets() {
-    d.targetmap = make(map[string]targets.Target)
+    if d.targetmanager == nil {
+        d.targetmanager = targets.NewTargetManager()
+    }
+    // Stop and remove all targets if needed
+    d.targetmanager.Stop()
+
     for k, v := range d.config.Targets {
-        t, err := targets.GetTarget(v.Module, k, v.Params)
-        if err != nil {
-            clog.Warn("Dispatcher: %s", err)
-        }
-        d.targetmap[k] = t
         clog.Info("Setting up target: %s", k)
+        if err := d.targetmanager.Add(v.Module, k, v.Params); err != nil {
+            clog.Warn("Could not add target '%s:%s': %s", v.Module, k, err.Error())
+        }
     }
 }
 
@@ -89,63 +98,31 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
         clog.Info("Dispatch: Key timeout reached: %# v", tdiff.String())
         return false
     }
-    var mod string
-    var cmd string
-    var args string
-    var rok bool
+    var rok = true
     // FIXME: NEED NEW MODES!
-    // FIXME: Things crash here sometimes
-    if _, ok := d.modemap[d.activemode]; !ok { d.activemode = "default" }
+    if _, ok := d.modemap[d.activemode]; !ok {
+        d.setMode("default")
+    }
     if val, ok := d.modemap[d.activemode].Keys[rc.Key]; ok {
         for _, v := range val {
-            mod, cmd, args, rok = d.resolve(v)
-            d.sender(mod, cmd, args)
+            if err := d.targetmanager.RunCommand(v); err != nil {
+                clog.Warn("Command failed: %s", v)
+                rok = false
+            }
         }
-        return true
     } else if val, ok := d.modemap["default"].Keys[rc.Key]; ok {
         for _, v := range val {
-            mod, cmd, args, rok = d.resolve(v)
-            d.sender(mod, cmd, args)
+            if err := d.targetmanager.RunCommand(v); err != nil {
+                clog.Warn("Command failed: %s", v)
+                rok = false
+            }
         }
-        return true
     } else {
-        clog.Info("Dispatch: key `%s` Not found in any mode.", rc.Key)
-        return false
-    }
-    if !rok {
-        return false
+        clog.Warn("Dispatch: key `%s` Not found in any mode.", rc.Key)
+        rok = false
     }
 
-    return true
-}
-
-func (d *Dispatcher) resolve(input string) (mod string, cmd string, args string, ok bool) {
-    foo := strings.SplitN(input, "::", 2)
-    if len(foo) < 2 {
-        clog.Warn("Dispatch: `%s` is not a well formed command", input)
-        return "", "", "", false
-    }
-    bar := strings.SplitN(foo[1], " ", 2)
-    baz := ""
-    if len(bar) > 1 {
-        baz = bar[1]
-    }
-
-    return foo[0], bar[0], baz, true
-}
-
-func (d *Dispatcher) sender(mod string, cmd string, args string) bool {
-    if mod == "mode" {
-        return d.setMode(cmd)
-    }
-    if t, ok := d.targetmap[mod]; ok {
-        err := t.SendCommand(cmd, args)
-        if err != nil {
-            clog.Debug("Dispatch: failed to send command `%s` for `%s` with error: %s", cmd, mod, err)
-        }
-        return true
-    }
-    return false
+    return rok
 }
 
 func (d *Dispatcher) setMode(mode string) bool {
