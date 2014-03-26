@@ -23,6 +23,13 @@ func Create(name string, params map[string]string) (targets.Target, error) {
     return l, nil
 }
 
+func (d *Linux) Commands() map[string]*targets.Command {
+    return nil
+}
+func (d *Linux) Stop() error {
+    return nil
+}
+
 func (l *Linux) SendCommand(cmd string, args ...string) error {
     switch cmd {
     case "PowerOn":

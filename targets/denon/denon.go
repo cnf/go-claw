@@ -42,6 +42,13 @@ func setup(name string, host string, port int) *Denon {
 
 }
 
+func (d *Denon) Commands() map[string]*targets.Command {
+    return nil
+}
+func (d *Denon) Stop() error {
+    return nil
+}
+
 func (d *Denon) SendCommand(cmd string, args ...string) error {
     switch cmd {
     case "PowerOn":

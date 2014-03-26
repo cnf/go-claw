@@ -43,6 +43,13 @@ func Register() {
     //targets.RegisterAutoDetect(OnkyoAutoDetect)
 }
 
+func (d *OnkyoReceiver) Commands() map[string]*targets.Command {
+    return nil
+}
+func (d *OnkyoReceiver) Stop() error {
+    return nil
+}
+
 /*
 params["model"]       = "TX-NR509"
 params["id"]         = "CAFFEE"

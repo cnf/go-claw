@@ -1,11 +1,12 @@
 package targets
 
 import "fmt"
-
 import "github.com/cnf/go-claw/clog"
 
 type Target interface {
     SendCommand(cmd string, args ...string) error
+    Stop() error
+    Commands() map[string]*Command
 }
 
 type CreateTarget func(name string, params map[string]string) (t Target, err error)
@@ -25,3 +26,5 @@ func GetTarget(module string, name string, params map[string]string) (Target, er
     clog.Warn("Tried to use Target module %s, but module does not exist.", module)
     return nil, fmt.Errorf("target module %s does not exist", module)
 }
+
+

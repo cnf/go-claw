@@ -69,6 +69,14 @@ func Create(name string, params map[string]string) (targets.Target, error) {
     return p, nil
 }
 
+func (d *Plex) Commands() map[string]*targets.Command {
+    return nil
+}
+func (d *Plex) Stop() error {
+    return nil
+}
+
+
 // SendCommand receives the command from the dispatcher
 func (p *Plex) SendCommand(cmd string, args ...string) error {
     var path string
