@@ -51,7 +51,7 @@ func printCommands(cmds map[string]*Command) {
         for _, p := range v.Parameters {
             fmt.Printf("    Parameter: %s\n", p.Name)
             fmt.Printf("       Description: '%s'\n", p.Description)
-            fmt.Printf("       Optional   : '%s'\n", p.Optional)
+            fmt.Printf("       Optional   : '%v'\n", p.Optional)
             fmt.Printf("       Type       : '%s'\n", p.Type)
             fmt.Printf("       Validation : '%s'\n", p.Validation)
         }
