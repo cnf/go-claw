@@ -5,8 +5,6 @@ import "errors"
 import "strings"
 import "github.com/cnf/go-claw/clog"
 
-var targetlist = make(map[string]CreateTarget)
-
 type TargetManager struct {
     targets map[string]Target
     target_cmds map[string]map[string]*Command
