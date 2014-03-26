@@ -37,6 +37,5 @@ func (l *Linux) powerOn() error {
         ok := tools.Wol(l.wol)
         if !ok { return fmt.Errorf("can not power on %s", l.name) }
     }
-    clog.Debug("Can not power on %s", l.name)
-    return fmt.Errorf("can not power on %s", l.name)
+    return fmt.Errorf("do not know how to power on %s", l.name)
 }
