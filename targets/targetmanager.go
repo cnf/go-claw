@@ -10,6 +10,7 @@ type TargetManager struct {
     target_cmds map[string]map[string]*Command
 }
 
+// Create and initialize a new TargetManager object
 func NewTargetManager() *TargetManager {
     ret := &TargetManager{ 
             targets    : make(map[string]Target),
@@ -54,6 +55,7 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
     return nil
 }
 
+// Remove a target instance from the list
 func (t *TargetManager) Remove(name string) error {
     if _, ok := t.targets[name]; !ok {
         return errors.New("cannot remove " + name + ": does not exist")
@@ -68,6 +70,7 @@ func (t *TargetManager) Remove(name string) error {
     return nil
 }
 
+// Stops all target instances and removes them
 func (t *TargetManager) Stop() error {
     for k := range t.targets {
         if err := t.Remove(k); err != nil {
@@ -79,6 +82,8 @@ func (t *TargetManager) Stop() error {
     return nil
 }
 
+// Parses command, determines which target should run it, checks the provided parameters,
+// and if all is good - run the command.
 func (t *TargetManager) RunCommand(cmdstring string) error {
     splitstr := strings.SplitN(cmdstring, "::", 2)
     if len(splitstr) != 2 {
@@ -138,6 +143,8 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
     return t.targets[tgtname].SendCommand(tcommand, tparams...)
 }
 
+// Split a string containing quoted strings on newlines, quotes, ... 
+// Supports escaping of space, newline, ...
 func splitQuoted(s string) []string {
     var ret []string
     var curr = make([]rune, len(s))
@@ -190,9 +197,12 @@ func splitQuoted(s string) []string {
                 cpos++
                 escaped = false
             } else if quoted == r {
-                // Quoted string closed - add to list
-                ret = append(ret, string(curr[0:cpos]))
-                cpos = 0
+                // Quoted string closed
+                // Don't add to list yet, whitespace should follow if 
+                // it's a new string/parameter, otherwise treat it as
+                // the same
+                //ret = append(ret, string(curr[0:cpos]))
+                //cpos = 0
                 quoted = ' '
             } else if quoted == ' ' {
                 // New quote, start new entry
