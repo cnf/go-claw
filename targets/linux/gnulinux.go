@@ -1,5 +1,7 @@
 package linux
 
+import "fmt"
+
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/tools"
@@ -13,27 +15,28 @@ func Register() {
     targets.RegisterTarget("linux", Create)
 }
 
-func Create(name string, params map[string]string) (t targets.Target, ok bool) {
+func Create(name string, params map[string]string) (targets.Target, error) {
     l := &Linux{name: name}
     if wol, ok := params["wol"]; ok {
         l.wol = wol
     }
-    return l, true
+    return l, nil
 }
 
-func (l *Linux) SendCommand(cmd string, args ...string) bool {
+func (l *Linux) SendCommand(cmd string, args ...string) error {
     switch cmd {
     case "PowerOn":
         clog.Debug("Power on %s", l.name)
         return l.powerOn()
     }
-    return false
+    return fmt.Errorf("could not send command `%s` on `%s`", cmd, l.name)
 }
 
-func (l *Linux) powerOn() bool {
+func (l *Linux) powerOn() error {
     if l.wol != "" {
-        return tools.Wol(l.wol)
+        ok := tools.Wol(l.wol)
+        if !ok { return fmt.Errorf("can not power on %s", l.name) }
     }
     clog.Debug("Can not power on %s", l.name)
-    return false
+    return fmt.Errorf("can not power on %s", l.name)
 }

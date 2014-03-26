@@ -51,7 +51,7 @@ func Register() {
 }
 
 // Create a new instance of this target
-func Create(name string, params map[string]string) (t targets.Target, ok bool) {
+func Create(name string, params map[string]string) (targets.Target, error) {
     p := &Plex{name: name, }
     p.proto = "http"
     if val, ok := params["name"]; ok {
@@ -66,11 +66,11 @@ func Create(name string, params map[string]string) (t targets.Target, ok bool) {
     p.uuid = "1A5C18A3-C398-4A50-A6CE-FCFDDD7FC1F2"
     p.commandID = 1
     go p.subscribe()
-    return p, true
+    return p, nil
 }
 
 // SendCommand receives the command from the dispatcher
-func (p *Plex) SendCommand(cmd string, args ...string) bool {
+func (p *Plex) SendCommand(cmd string, args ...string) error {
     var path string
     var err error
     var val commander
@@ -111,9 +111,12 @@ func (p *Plex) SendCommand(cmd string, args ...string) bool {
     default:
         val, ok = p.commands[cmd]
     }
-    if !ok { return false }
+    if !ok {
+        err = fmt.Errorf("could not send `%s` to `%s`", cmd, p.name)
+        return err
+    }
     path, err = val.command(args...)
-    if err != nil { return false }
+    if err != nil { return err }
     return p.plexGet(path)
 }
 
@@ -167,11 +170,11 @@ func (p *Plex) hasCapability(c string) bool {
     return false
 }
 
-func (p *Plex) plexGet(str string) bool {
+func (p *Plex) plexGet(str string) error {
     burl := p.getURL()
     if burl == "" {
         clog.Info("Plex: no url set, client not running?")
-        return false
+        return fmt.Errorf("no url set, client not running?")
     }
     purl := fmt.Sprintf("%s%s", burl, str)
     clog.Debug("Plex: GET %s", purl)
@@ -189,10 +192,10 @@ func (p *Plex) plexGet(str string) bool {
     resp, err := client.Do(request)
     if err != nil {
         clog.Error("FIXME: go1.3 - %s", err.Error())
-        return false
+        return err
     }
     resp.Body.Close()
-    return true
+    return nil
 }
 
 func (p *Plex) setTimeline(loc string, tls map[string]timelineXML) {
@@ -231,12 +234,13 @@ func (p *Plex) isNav() bool {
     return true
 }
 
-func (p *Plex) powerOn() bool {
+func (p *Plex) powerOn() error {
     if p.wol != "" {
-        return tools.Wol(p.wol)
+        ok := tools.Wol(p.wol)
+        if !ok { return fmt.Errorf("can not power on %s", p.name) }
     }
     clog.Info("Can not power on %s", p.name)
-    return false
+    return fmt.Errorf("can not power on %s", p.name)
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {

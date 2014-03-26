@@ -21,7 +21,7 @@ type Dispatcher struct {
 func (d *Dispatcher) Start() {
     defer d.cs.Close()
     d.activemode = "default"
-    d.keytimeout = time.Duration(120 * time.Millisecond) 
+    d.keytimeout = time.Duration(120 * time.Millisecond)
     d.readConfig()
     d.setupListeners()
     d.setupModes()
@@ -72,11 +72,12 @@ func (d *Dispatcher) setupModes() {
 func (d *Dispatcher) setupTargets() {
     d.targetmap = make(map[string]targets.Target)
     for k, v := range d.config.Targets {
-        t, ok := targets.GetTarget(v.Module, k, v.Params)
-        if ok {
-            d.targetmap[k] = t
-            clog.Info("Setting up target: %s", k)
+        t, err := targets.GetTarget(v.Module, k, v.Params)
+        if err != nil {
+            clog.Warn("Dispatcher: %s", err)
         }
+        d.targetmap[k] = t
+        clog.Info("Setting up target: %s", k)
     }
 }
 
@@ -138,9 +139,9 @@ func (d *Dispatcher) sender(mod string, cmd string, args string) bool {
         return d.setMode(cmd)
     }
     if t, ok := d.targetmap[mod]; ok {
-        sok := t.SendCommand(cmd, args)
-        if !sok {
-            clog.Debug("Dispatch: failed to send command `%s` for `%s`", cmd, mod)
+        err := t.SendCommand(cmd, args)
+        if err != nil {
+            clog.Debug("Dispatch: failed to send command `%s` for `%s` with error: ", cmd, mod, err)
         }
         return true
     }
