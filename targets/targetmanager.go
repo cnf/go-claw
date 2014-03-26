@@ -3,6 +3,7 @@ package targets
 import "fmt"
 import "errors"
 import "strings"
+import "unicode"
 import "github.com/cnf/go-claw/clog"
 
 type TargetManager struct {
@@ -181,16 +182,6 @@ func splitQuoted(s string) []string {
                 ret = append(ret, string(curr[0:cpos]))
                 cpos = 0
             }
-        case '\t', '\n', '\r':
-            // the other white space - cannot escape this!
-            if quoted != ' ' {
-                curr[cpos] = r
-                cpos++
-            } else if cpos != 0 {
-                // Add to lst
-                ret = append(ret, string(curr[0:cpos]))
-                cpos = 0
-            }
         case '"', '\'':
             if escaped {
                 curr[cpos] = r
@@ -220,13 +211,25 @@ func splitQuoted(s string) []string {
                 escaped = true
             }
         default:
-            if escaped {
-                curr[cpos] = '\\'
+            if unicode.IsSpace(r) {
+                // the other white space - cannot escape this!
+                if quoted != ' ' {
+                    curr[cpos] = r
+                    cpos++
+                } else if cpos != 0 {
+                    // Add to lst
+                    ret = append(ret, string(curr[0:cpos]))
+                    cpos = 0
+                }
+            } else {
+                if escaped {
+                    curr[cpos] = '\\'
+                    cpos++
+                    escaped = false
+                }
+                curr[cpos] = r
                 cpos++
-                escaped = false
             }
-            curr[cpos] = r
-            cpos++
         }
     }
     return ret
