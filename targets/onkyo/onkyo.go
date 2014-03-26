@@ -5,6 +5,7 @@ import "net"
 import "errors"
 import "time"
 import "sync"
+import "fmt"
 //import "encoding/hex"
 //import "github.com/tarm/goserial"
 import "github.com/cnf/go-claw/clog"
@@ -50,15 +51,14 @@ params["device"]     = "/dev/ttyS1"
 params["host"]       = "192.168.0.1:123"
 */
 
-func (r *OnkyoReceiver) doConnect() bool {
+func (r *OnkyoReceiver) doConnect() error {
     r.mu.Lock()
     defer r.mu.Unlock()
     if (r.Transport == TransportSerial) {
-        clog.Error("onkyo serial connection is not implemented!")
-        return false
+        return errors.New("onkyo serial connection is not implemented!")
     }
     if (r.con != nil) {
-        return true
+        return nil
     }
     var autodetected = false
     for {
@@ -70,8 +70,7 @@ func (r *OnkyoReceiver) doConnect() bool {
             }
         }
         if r.Host == "" {
-            clog.Error("No host setting found!")
-            return false
+            return errors.New("onkyo connect: no host setting found")
         }
         var err error
         clog.Debug("Connecting to %s", r.Host)
@@ -92,10 +91,10 @@ func (r *OnkyoReceiver) doConnect() bool {
                 continue
             }
         } else {
-            return true
+            return nil
         }
     }
-    return false
+    return errors.New("onkyo sendCmd: unknown error")
 }
 
 func (r *OnkyoReceiver) processparams(pname string, params map[string]string) error {
@@ -148,16 +147,15 @@ func (r *OnkyoReceiver) processparams(pname string, params map[string]string) er
     return nil
 }
 
-func (r *OnkyoReceiver) sendCmd(cmd string) (string, bool) {
+func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
     errcnt := 0
     buf := make([]byte, 1024)
     for {
         if (errcnt >= 3) {
-            return "", false
+            return "", errors.New("Could not send command: retry count exceeded")
         }
-        if !r.doConnect() {
-            clog.Error("Connect failed, giving up")
-            return "", false
+        if err := r.doConnect(); err != nil {
+            return "", err
         }
         switch r.Transport {
         case TransportTCP:
@@ -202,38 +200,37 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, bool) {
             }
             rcmd := &OnkyoFrameTCP{}
             if err := rcmd.Parse(buf[0:rlen]); err != nil {
-                clog.Error("Could not parse Onkyo response: %s", err.Error())
-                return "", false
+                return "", fmt.Errorf("could not parse Onkyo response: %s", err.Error())
             }
             r.lastsend = time.Now()
-            return rcmd.Message(), true
+            return rcmd.Message(), nil
         case TransportSerial:
-            return "", false
+            return "", errors.New("onkyo serial protocol not implemented")
         }
         break
     }
-    return "", false
+    return "", errors.New("unknown error sending the onkyo command")
 }
 
-func createOnkyoReceiver(name string, params map[string]string) (targets.Target, bool) {
+func createOnkyoReceiver(name string, params map[string]string) (targets.Target, error) {
     clog.Debug("Creating Onkyo Receiver %s", name)
     var ret OnkyoReceiver
 
     // Process incoming parameters
     if err := ret.processparams(name, params); err != nil {
         clog.Error(err.Error())
-        return nil, false
+        return nil, err
     }
     // 5 seconds in the past
     ret.lastsend = time.Now().Add(time.Duration(-5) * time.Second)
-    if !ret.doConnect() {
-        clog.Error("could not connect to Onkyo Reciever!")
+    if err := ret.doConnect(); err != nil {
+        clog.Warn("could not connect to Onkyo Reciever: %s", err.Error())
     }
-    return &ret, true
+    return &ret, nil
 }
 
 // SendCommand sends a command to the receiver
-func (r *OnkyoReceiver) SendCommand(cmd string, args ...string) bool {
+func (r *OnkyoReceiver) SendCommand(cmd string, args ...string) error {
     clog.Debug("Sending command: %s (%v)", cmd, args)
     // Look up command
     return r.onkyoCommand(cmd, args)

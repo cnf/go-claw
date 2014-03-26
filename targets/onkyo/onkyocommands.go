@@ -2,32 +2,32 @@ package onkyo
 
 import "github.com/cnf/go-claw/clog"
 
-func (r *OnkyoReceiver) onkyoCommand(cmd string, args []string) bool {
+func (r *OnkyoReceiver) onkyoCommand(cmd string, args []string) error {
     var rv string
-    var ok bool
+    var err error
     switch cmd {
     case "PowerOn":
-        rv, ok = r.sendCmd("PWR01")
+        rv, err = r.sendCmd("PWR01")
     case "PowerOff":
-        rv, ok = r.sendCmd("PWR00")
+        rv, err = r.sendCmd("PWR00")
     case "TogglePower":
-        rv, ok = r.sendCmd("PWRQSTN")
+        rv, err = r.sendCmd("PWRQSTN")
         if rv == "PWR00" {
             r.sendCmd("PWR01")
         } else {
             r.sendCmd("PWR00")
         }
     case "MuteOn":
-        rv, ok = r.sendCmd("AMT01")
+        rv, err = r.sendCmd("AMT01")
     case "MuteOff":
-        rv, ok = r.sendCmd("AMT00")
+        rv, err = r.sendCmd("AMT00")
     case "Mute":
-        rv, ok = r.sendCmd("AMTTG")
+        rv, err = r.sendCmd("AMTTG")
     case "VolumeUp":
-        rv, ok = r.sendCmd("MVLUP")
+        rv, err = r.sendCmd("MVLUP")
     case "VolumeDown":
-        rv, ok = r.sendCmd("MVLDOWN")
+        rv, err = r.sendCmd("MVLDOWN")
     }
     clog.Debug("Onkyo returned: '%s'", rv)
-    return ok
+    return err
 }
