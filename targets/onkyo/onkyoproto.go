@@ -3,9 +3,13 @@ package onkyo
 import "fmt"
 import "bytes"
 import "errors"
+import "io"
+import "bufio"
 import "encoding/binary"
 //import "encoding/hex"
 //import "github.com/cnf/go-claw/clog"
+
+const OnkyoMagic = "ISCP"
 
 // OnkyoFrame describes the main interface for an object to parse and
 // construct an Onkyo remote control message
@@ -34,6 +38,14 @@ func NewOnkyoFrameTCP(msg string) *OnkyoFrameTCP {
     return &OnkyoFrameTCP{Msg: msg}
 }
 
+func ReadOnkyoFrameTCP(r io.Reader) (*OnkyoFrameTCP, error) {
+    ret := &OnkyoFrameTCP{}
+    if err := ret.ReadFrom(r); err != nil {
+        return nil, err
+    }
+    return ret, nil
+}
+
 // Bytes returns the []byte of the constructed message
 func (c *OnkyoFrameTCP) Bytes() []byte {
     if (c.Msg == "") {
@@ -60,74 +72,132 @@ func (c *OnkyoFrameTCP) Bytes() []byte {
     return buf.Bytes()
 }
 
-// Parse parses an incoming []byte, validates and extracts the message
-func (c *OnkyoFrameTCP) Parse(buf []byte) (error) {
+
+func parseHeader(h []byte) (datalen uint32, err error) {
     var magic [4]byte
     var headersize uint32
-    var datalen uint32
     var version uint8
     var rfu [3]byte
-    //clog.Debug("----- PARSE ----")
-    //clog.Debug(hex.Dump(buf))
+    datalen = 0
+
+    if len(h) < 16 {
+        return datalen, errors.New("expected 16 bytes onkyo frame header")
+    }
+    b := bytes.NewReader(h[0:16])
+    if err := binary.Read(b, binary.BigEndian, &magic); err != nil {
+        return datalen, err
+    }
+    if string(magic[0:4]) != "ISCP" {
+        return datalen, errors.New("onkyo message magic mismatch")
+    }
+    if err := binary.Read(b, binary.BigEndian, &headersize); err != nil {
+        return datalen, err
+    }
+    if headersize != 16 {
+        return datalen, errors.New("onkyo message header length not 16")
+    }
+    if err := binary.Read(b, binary.BigEndian, &datalen); err != nil {
+        return datalen, err
+    }
+    if err := binary.Read(b, binary.BigEndian, &version); err != nil {
+        return datalen, err
+    }
+    if version != 1 {
+        return datalen, fmt.Errorf("unknown onkyo message version, expected 1, got %d", version)
+    }
+    if err := binary.Read(b, binary.BigEndian, &rfu); err != nil {
+        return datalen, err
+    }
+    return datalen, nil
+}
+
+func (c *OnkyoFrameTCP) parseData(buf []byte, datalen uint32) error {
+    // Determine endpos
+    endpos := intMinPositive(
+            bytes.IndexByte(buf, 0x1A), // ^Z ??
+            bytes.IndexByte(buf, 0x19), // EOT
+            bytes.IndexByte(buf, 0x0A),
+            bytes.IndexByte(buf, 0x0D),
+        )
+    if endpos < 0 {
+        return fmt.Errorf("onkyo message is missing data terminator")
+    }
+    msgdata := buf[0:endpos]
+
+    if len(msgdata) < 2 {
+        return fmt.Errorf("onkyo message too short, expected minimum length of 2, got %d", datalen)
+    }
+    // Get the message
+    if msgdata[0] != '!' {
+        return errors.New("onkyo message does not start with expected '!'")
+    }
+    if msgdata[1] != '1' {
+        return errors.New("onkyo message not coming from receiver, don't know how to handle")
+    }
+    // set the message - strip the "!1" start
+    c.Msg = string(msgdata[2:])
+
+    return nil
+}
+
+// Reads the frame from an io.Reader instance
+func (c *OnkyoFrameTCP) ReadFrom(r io.Reader) error {
+    br := bufio.NewReader(r)
+    // Scan for the magic
+ScanLoop:
+    for {
+        for i := 0; i < len(OnkyoMagic); i++ {
+            c, err := br.ReadByte()
+            if err != nil {
+                return err
+            }
+            if (c != OnkyoMagic[i]) {
+                // Not the magic
+                continue ScanLoop
+            }
+        }
+        // If we get here, this is a valid frame!
+        break
+    }
+    var frame [16]byte
+    for i := 0; i < len(OnkyoMagic); i++ {
+        frame[i] = OnkyoMagic[i]
+    }
+    rlen, err := br.Read(frame[len(OnkyoMagic):])
+    if err != nil {
+        return err
+    }
+    if (rlen + len(OnkyoMagic)) != 16 {
+        return errors.New("error reading onkyo frame header")
+    }
+    datalen, err := parseHeader(frame[0:])
+    if err != nil {
+        return err
+    }
+    var data = make([]byte, datalen)
+    rlen, err = br.Read(data)
+    if err != nil {
+        return err
+    }
+    if rlen != len(data) {
+        return errors.New("received data length mismatch")
+    }
+    return c.parseData(data, datalen)
+}
+
+// Parse parses an incoming []byte, validates and extracts the message
+func (c *OnkyoFrameTCP) Parse(buf []byte) (error) {
+
     if (len(buf) < 16) {
         // Smaller than header
         return errors.New("buffer length smaller than header size of an onkyo message")
     }
-    // Determine endpos
-    endpos := bytes.IndexByte(buf[16:], 0x19)
-    nlpos := bytes.IndexByte(buf[16:], 0x0A)
-    crpos := bytes.IndexByte(buf[16:], 0x0D)
-    if (endpos < 0) {
-        endpos = intMinPositive(endpos, nlpos, crpos)
-    }
-
     // parse the header
-    b := bytes.NewReader(buf[0:16])
-    if err := binary.Read(b, binary.BigEndian, &magic); err != nil {
+    datalen, err := parseHeader(buf)
+    if (err != nil) {
         return err
     }
-    if string(magic[0:4]) != "ISCP" {
-        return errors.New("onkyo message magic mismatch")
-    }
-    if err := binary.Read(b, binary.BigEndian, &headersize); err != nil {
-        return err
-    }
-    if headersize != 16 {
-        return errors.New("onkyo message header length not 16")
-    }
-    if err := binary.Read(b, binary.BigEndian, &datalen); err != nil {
-        return err
-    }
-    if err := binary.Read(b, binary.BigEndian, &version); err != nil {
-        return err
-    }
-    if version != 1 {
-        return fmt.Errorf("unknown onkyo message version, expected 1, got %d", version)
-    }
-    if err := binary.Read(b, binary.BigEndian, &rfu); err != nil {
-        return err
-    }
-    rxdatalen := uint32(len(buf[16:intMax(endpos, nlpos, crpos)+16])) + 1
-    if rxdatalen != datalen {
-        return fmt.Errorf("onkyo message data length mismatch: %d != expected %d",
-                rxdatalen, datalen,
-            )
-    }
-    if datalen < 2 {
-        return fmt.Errorf("onkyo message too short, expected minimum length of 2, got %d", datalen)
-    }
-    // Get the message
-    if buf[16] != '!' {
-        return errors.New("onkyo message does not start with expected '!'")
-    }
-    if buf[17] != '1' {
-        return errors.New("onkyo message not coming from receiver, don't know how to handle")
-    }
-    //clog.Debug("End position: %d", endpos+16)
-    // set the message - strip the "!1" start
-    c.Msg = string(buf[18:endpos+15])
-
-    return nil
+    return c.parseData(buf[16:], datalen)
 }
 
 // Message returns the message associated with the command
