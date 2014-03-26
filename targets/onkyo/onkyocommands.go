@@ -12,9 +12,16 @@ func (r *OnkyoReceiver) onkyoCommand(cmd string, args []string) error {
         rv, err = r.sendCmd("PWR00")
     case "TogglePower":
         rv, err = r.sendCmd("PWRQSTN")
+        if err != nil {
+            clog.Error("ERROR: %s", err.Error())
+            return err
+        }
+        clog.Debug("Power state query: '%s', %d", rv, len(rv))
         if rv == "PWR00" {
+            clog.Debug("Sending PWR01")
             r.sendCmd("PWR01")
         } else {
+            clog.Debug("Sending PWR00")
             r.sendCmd("PWR00")
         }
     case "MuteOn":
