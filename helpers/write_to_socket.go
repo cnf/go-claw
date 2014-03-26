@@ -18,6 +18,7 @@ func echoServer(c net.Conn) {
             "000000037ff07bef 01 KEY_VOLUMEUP PH00SBLe",
             "000000037ff07bef 00 KEY_VOLUMEDOWN PH00SBLe",
             "000000037ff07bef 01 KEY_VOLUMEDOWN PH00SBLe",
+            /*
             "000000037ff07bef 00 KEY_VOLUMEUP PH00SBLe",
             "000000037ff07bef 01 KEY_VOLUMEUP PH00SBLe",
             "000000037ff07bef 00 KEY_VOLUMEDOWN PH00SBLe",
@@ -34,6 +35,7 @@ func echoServer(c net.Conn) {
             "000000037ff07bef 01 KEY_VOLUMEUP PH00SBLe",
             "000000037ff07bef 00 KEY_VOLUMEDOWN PH00SBLe",
             "000000037ff07bef 01 KEY_VOLUMEDOWN PH00SBLe",
+            */
 
             /*
             "000000037ff07bef 00 KEY_VOLUMEUP PH00SBLe",
