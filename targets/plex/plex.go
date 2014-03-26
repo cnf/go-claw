@@ -239,8 +239,7 @@ func (p *Plex) powerOn() error {
         ok := tools.Wol(p.wol)
         if !ok { return fmt.Errorf("can not power on %s", p.name) }
     }
-    clog.Info("Can not power on %s", p.name)
-    return fmt.Errorf("can not power on %s", p.name)
+    return fmt.Errorf("do not know how to power on %s", p.name)
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {

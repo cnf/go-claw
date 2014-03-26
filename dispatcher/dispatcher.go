@@ -141,7 +141,7 @@ func (d *Dispatcher) sender(mod string, cmd string, args string) bool {
     if t, ok := d.targetmap[mod]; ok {
         err := t.SendCommand(cmd, args)
         if err != nil {
-            clog.Debug("Dispatch: failed to send command `%s` for `%s` with error: ", cmd, mod, err)
+            clog.Debug("Dispatch: failed to send command `%s` for `%s` with error: %s", cmd, mod, err)
         }
         return true
     }
