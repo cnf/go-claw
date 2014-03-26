@@ -165,7 +165,7 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
                 time.Sleep((time.Duration(50) * time.Millisecond) - tdiff)
             }
             //clog.Debug("Sending command to Onkyo: %s", cmd)
-            r.con.SetWriteDeadline(time.Now().Add(time.Duration(300) * time.Millisecond))
+            r.con.SetWriteDeadline(time.Now().Add(time.Duration(500) * time.Millisecond))
             _, err := r.con.Write(NewOnkyoFrameTCP(cmd).Bytes())
             r.lastsend = time.Now()
             if (err != nil) {
@@ -183,9 +183,14 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
             }
             // Read the response
             var rcmd *OnkyoFrameTCP
+            // Power on needs 500ms, poweroff +- 700 on my TX509
+            r.con.SetReadDeadline(time.Now().Add(time.Duration(1000) * time.Millisecond))
             for {
-                r.con.SetReadDeadline(time.Now().Add(time.Duration(4000) * time.Millisecond))
                 rcmd, err = ReadOnkyoFrameTCP(r.con)
+                if err != nil {
+                    clog.Error("Error receiving Onkyo Response: %s", err.Error())
+                    continue
+                }
                 clog.Debug("Onkyo '%s' response: '%s'", cmd, rcmd.Message())
                 if (rcmd.Message()[0:3] == cmd[0:3]) {
                     clog.Debug("Onkyo response OK")
