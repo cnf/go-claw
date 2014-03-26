@@ -144,23 +144,16 @@ func (c *OnkyoFrameTCP) parseData(buf []byte, datalen uint32) error {
 func (c *OnkyoFrameTCP) ReadFrom(r io.Reader) error {
     br := bufio.NewReader(r)
     // Scan for the magic
+ScanLoop:
     for {
-        c, err := br.ReadByte()
-        if err != nil {
-            return err
-        }
-        // Not the start of the magic
-        if c != OnkyoMagic[0] {
-            continue
-        }
-        for i := 0; i < (len(OnkyoMagic) - 1); i++ {
+        for i := 0; i < len(OnkyoMagic); i++ {
             c, err := br.ReadByte()
             if err != nil {
                 return err
             }
             if (c != OnkyoMagic[i]) {
                 // Not the magic
-                continue
+                continue ScanLoop
             }
         }
         // If we get here, this is a valid frame!
