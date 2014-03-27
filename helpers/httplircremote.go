@@ -177,6 +177,8 @@ var indexpg = template.Must(template.New("index").Parse(`
 var path = window.location.pathname;
 var wsURL = "ws://" + window.location.host +  path.substring(0, path.lastIndexOf('/')) + "/sock";
 var ws;
+
+// Javascript keycodes: http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes
 var buttons = {
     "Up"   : { command: "KEY_UP"   , wait: 100, keycode: 38 },
     "Down" : { command: "KEY_DOWN" , wait: 100, keycode: 40 },
