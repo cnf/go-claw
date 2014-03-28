@@ -1,15 +1,15 @@
 package main
 
 import "fmt"
-import "time"
+//import "time"
 import "log"
 import "html/template"
 import "net"
 import "net/http"
 import "os"
 import "os/signal"
-import "strings"
-import "strconv"
+//import "strings"
+//import "strconv"
 import "bufio"
 import "code.google.com/p/go.net/websocket"
 
@@ -65,29 +65,16 @@ func handleUnixConn(c net.Conn, ch chan string) {
     count := 0
     pcmd := ""
     for f := range ch {
-        // Parse the incoming message
-        split := strings.Split(f, ":")
-        if len(split) != 2 {
-            continue
-        }
-        sleep, err := strconv.Atoi(split[1])
-        if err != nil {
-            sleep = 100
-        }
-        if pcmd == split[0] {
+        // construct and send the message
+        if (pcmd == f) {
             count++
         } else {
             count = 0
         }
-        // construct and send the message
-        sendmsg := fmt.Sprintf("%s %02X %s %s", "000000037ff07bef", count, split[0], "PH00SBLe")
+        sendmsg := fmt.Sprintf("%s %02X %s %s", "000000037ff07bef", count, f, "PH00SBLe")
         log.Println("Sending command " + sendmsg)
         buffrw.WriteString(sendmsg + "\n")
-        pcmd = split[0]
-
-        // Now sleep
-        log.Println("Sleeping " + strconv.Itoa(sleep) + "ms")
-        time.Sleep(time.Duration(sleep) * time.Millisecond)
+        pcmd = f
     }
 }
 
@@ -177,80 +164,89 @@ var indexpg = template.Must(template.New("index").Parse(`
 var path = window.location.pathname;
 var wsURL = "ws://" + window.location.host +  path.substring(0, path.lastIndexOf('/')) + "/sock";
 var ws;
+var connected = false;
+var lastsent = ""
 
 // Javascript keycodes: http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes
 var buttons = {
-    "Up"   : { command: "KEY_UP"   , wait: 100, keycode: 38 },
-    "Down" : { command: "KEY_DOWN" , wait: 100, keycode: 40 },
-    "Left" : { command: "KEY_LEFT" , wait: 100, keycode: 37 },
-    "Right": { command: "KEY_RIGHT", wait: 100, keycode: 39 }
+    "Up"               : { command: "KEY_UP"           , keycode: [ 38 ] },
+    "Down"             : { command: "KEY_DOWN"         , keycode: [ 40 ] },
+    "Left"             : { command: "KEY_LEFT"         , keycode: [ 37 ] },
+    "Right"            : { command: "KEY_RIGHT"        , keycode: [ 39 ] },
+    "OK (Enter)"       : { command: "KEY_OK"           , keycode: [ 13 ] },
+    "Back (backspace)" : { command: "KEY_BACK"         , keycode: [  8 ] },
+    "Power toggle (p)" : { command: "KEY_POWER"        , keycode: [ 80 ] },
+    "Exit (Esc)"       : { command: "KEY_EXIT"         , keycode: [ 27 ] },
+    "Play (space)"     : { command: "KEY_PLAY"         , keycode: [ 32 ] },
+    "Volume Up (+)"    : { command: "KEY_VOLUMEUP"     , keycode: [ 107, 187, 33 ] },
+    "Volume Down (-)"  : { command: "KEY_VOLUMEDOWN"   , keycode: [ 109, 189, 34 ] },
 };
-var keyqueue = [];
 
-function processQueue() {
-    if (ws == null) {
+function sendCmd(button) {
+    if ((ws == null) || (!connected)) {
         return
     }
-    wait = 50
-    if ((keyqueue != null) && (keyqueue.length > 0)) {
-        v = keyqueue.pop()
-        if ("wait" in v) {
-            wait = v.wait
-        }
-        ws.send(v.command + ":" + wait)
-        log("Sent command: " + v.command)
+    if ( !(button in buttons)) {
+        return
     }
-    if (keyqueue != null) {
-        setTimeout(processQueue, wait)
-    } else {
-        ws.close()
-        ws = null
-    }
+    ws.send(buttons[button].command)
+    log("Sent command: " + buttons[button].command)
+
 }
 
-function stopQueue(evt) {
-    if (ws != null) {
-        ws.close()
-        ws = null
+function stopWs(evt) {
+    if (!connected) {
+        return
     }
-    keyqueue = null
+    connected = false
+    removeButtons()
+    log("")
+    log("")
+    log("Connection closed.")
+
+    ws.close()
+    ws = null
+    connectWs()
 }
 
 function onMessage(evt) {
     // Message received
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+function connectWs() {
+    if (ws != null) {
+        return
+    }
     ws = new WebSocket(wsURL);
     if (ws == null) {
         return
     }
     ws.onopen = function() {
+        log("Connected.")
         addButtons()
-        processQueue()
+        connected = true
     }
     ws.onmessage = onMessage
-    ws.onerror   = stopQueue
-    ws.onclose   = stopQueue
-})
+    ws.onerror   = function(evt) {
+        log("Error occured: " + evt)
+    }
+    ws.onclose   = stopWs
+}
+
+document.addEventListener("DOMContentLoaded", connectWs)
 document.addEventListener('keydown', function(event) {
     for (var i in buttons) {
-        if (buttons[i].keycode == event.keyCode) {
-            sendCmd(i)
-            event.preventDefault();
-            return false
+        for (var b in buttons[i].keycode) {
+            if (buttons[i].keycode[b] == event.keyCode) {
+                sendCmd(i)
+                event.preventDefault();
+                return false
+            }
         }
     }
+    log("Unknown key: " + event.keyCode )
     return true
 }, true);
-
-function sendCmd(button) {
-    if ( !(button in buttons)) {
-        return
-    }
-    keyqueue.push(buttons[button])
-    log("Queued command: " + buttons[button].command)
-}
 
 function log(str) {
     document.getElementById("messages").innerHTML = str + "<br />\n" + document.getElementById("messages").innerHTML
