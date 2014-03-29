@@ -43,9 +43,6 @@ func Register() {
     //targets.RegisterAutoDetect(OnkyoAutoDetect)
 }
 
-func (d *OnkyoReceiver) Commands() map[string]*targets.Command {
-    return nil
-}
 func (d *OnkyoReceiver) Stop() error {
     return nil
 }
@@ -190,14 +187,19 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
             }
             // Read the response
             var rcmd *OnkyoFrameTCP
+            rd_timeout := 1000
             for {
-                r.con.SetReadDeadline(time.Now().Add(time.Duration(4000) * time.Millisecond))
+                r.con.SetReadDeadline(time.Now().Add(time.Duration(rd_timeout) * time.Millisecond))
                 rcmd, err = ReadOnkyoFrameTCP(r.con)
+                if err != nil {
+                    return "", err
+                }
                 clog.Debug("Onkyo '%s' response: '%s'", cmd, rcmd.Message())
                 if (rcmd.Message()[0:3] == cmd[0:3]) {
                     clog.Debug("Onkyo response OK")
                     break
                 }
+                rd_timeout = 100
             }
             r.lastsend = time.Now()
             return rcmd.Message(), nil
