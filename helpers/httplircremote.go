@@ -73,7 +73,12 @@ func handleUnixConn(c net.Conn, ch chan string) {
         }
         sendmsg := fmt.Sprintf("%s %02X %s %s", "000000037ff07bef", count, f, "PH00SBLe")
         log.Println("Sending command " + sendmsg)
-        buffrw.WriteString(sendmsg + "\n")
+        _, err := buffrw.WriteString(sendmsg + "\n")
+        if err != nil {
+            log.Println("ERROR: Could not write on socket!")
+            return
+        }
+        buffrw.Flush()
         pcmd = f
     }
 }
@@ -117,9 +122,10 @@ func handlebroadcast() {
                 log.Println("ERROR: chanrm read (handlebroadcast)")
                 return
             }
-            for ri := range(chanarr) {
+            for ri := 0; ri < len(chanarr); ri++ {
                 if chanarr[ri] == rc {
                     // Remove the channel
+                    log.Printf("Closing socket %d...", ri)
                     chanarr = append(chanarr[:ri], chanarr[ri+1:]...)
                     close(rc)
                 }
