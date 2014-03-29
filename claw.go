@@ -25,6 +25,7 @@ func main() {
     }()
 
     setup()
+    clog.SetFlags(clog.Lshortlevel | clog.Ltimebetween | clog.Ltime)
     if verbose {
         clog.SetLogLevel(clog.DEBUG)
     } else {
