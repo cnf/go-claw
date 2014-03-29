@@ -119,10 +119,15 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
         // Validate all parameters
         pc := 0
         tparams_n := make([]string, 0)
-        for prm := range t.target_cmds[tgtname][tcommand].Parameters {
-            if pc < len(tparams) {
+        for prm := 0; prm < len(t.target_cmds[tgtname][tcommand].Parameters); prm++ {
+            if pc >= len(tparams) {
                 // Parameter not present, check if required
                 if !t.target_cmds[tgtname][tcommand].Parameters[prm].Optional {
+                    clog.Error("Non-optional parameter %s missing for command %s, target %s",
+                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            tcommand,
+                            tgtname,
+                        )
                     return fmt.Errorf("non-optional parameter '%s' missing for command '%s', target '%s'",
                             t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
                             tcommand,
@@ -133,6 +138,11 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
                 pval, err := t.target_cmds[tgtname][tcommand].Parameters[prm].Validate(tparams[pc])
                 if (err != nil) {
                     // validation returned an error
+                    clog.Error("Parameter validation %s failed for command %s, target %s",
+                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            tcommand,
+                            tgtname,
+                        )
                     return err
                 }
                 tparams_n = append(tparams_n, pval)
