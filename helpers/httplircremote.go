@@ -186,6 +186,19 @@ var buttons = {
     "Play (space)"     : { command: "KEY_PLAY"         , keycode: [ 32 ] },
     "Volume Up (+)"    : { command: "KEY_VOLUMEUP"     , keycode: [ 107, 187, 33 ] },
     "Volume Down (-)"  : { command: "KEY_VOLUMEDOWN"   , keycode: [ 109, 189, 34 ] },
+    "Mute Toggle (m)"  : { command: "KEY_MUTE"         , keycode: [ 77 ] },
+    "Mute On (<)"      : { command: "KEY_MUTEON"       , keycode: [ 188 ] },
+    "Mute Off (>)"     : { command: "KEY_MUTEOFF"      , keycode: [ 190 ] },
+    "Key 0 (0)"        : { command: "KEY_0"            , keycode: [ 48 ] },
+    "Key 1 (1)"        : { command: "KEY_1"            , keycode: [ 49 ] },
+    "Key 2 (2)"        : { command: "KEY_2"            , keycode: [ 50 ] },
+    "Key 3 (3)"        : { command: "KEY_3"            , keycode: [ 51 ] },
+    "Key 4 (4)"        : { command: "KEY_4"            , keycode: [ 52 ] },
+    "Key 5 (5)"        : { command: "KEY_5"            , keycode: [ 53 ] },
+    "Key 6 (6)"        : { command: "KEY_6"            , keycode: [ 54 ] },
+    "Key 7 (7)"        : { command: "KEY_7"            , keycode: [ 55 ] },
+    "Key 8 (8)"        : { command: "KEY_8"            , keycode: [ 56 ] },
+    "Key 9 (9)"        : { command: "KEY_9"            , keycode: [ 57 ] },
 };
 
 function sendCmd(button) {
