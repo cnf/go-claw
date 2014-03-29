@@ -4,6 +4,7 @@ import "fmt"
 import "errors"
 import "strings"
 import "unicode"
+import "time"
 import "github.com/cnf/go-claw/clog"
 
 type TargetManager struct {
@@ -87,6 +88,7 @@ func (t *TargetManager) Stop() error {
 // and if all is good - run the command.
 func (t *TargetManager) RunCommand(cmdstring string) error {
     splitstr := strings.SplitN(cmdstring, "::", 2)
+    tstart := time.Now()
     if len(splitstr) != 2 {
         return fmt.Errorf("invalid command string '%s', expected it to contain '::'", cmdstring)
     }
@@ -141,7 +143,11 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
         tparams = tparams_n
     }
     // Run the command
-    return t.targets[tgtname].SendCommand(tcommand, tparams...)
+    clog.Debug("--> Process cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
+    tstart = time.Now()
+    err := t.targets[tgtname].SendCommand(tcommand, tparams...)
+    clog.Debug("--> Execute cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
+    return err
 }
 
 // Split a string containing quoted strings on newlines, quotes, ... 
