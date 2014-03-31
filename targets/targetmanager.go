@@ -4,6 +4,7 @@ import "fmt"
 import "errors"
 import "strings"
 import "unicode"
+import "time"
 import "github.com/cnf/go-claw/clog"
 
 type TargetManager struct {
@@ -87,6 +88,7 @@ func (t *TargetManager) Stop() error {
 // and if all is good - run the command.
 func (t *TargetManager) RunCommand(cmdstring string) error {
     splitstr := strings.SplitN(cmdstring, "::", 2)
+    tstart := time.Now()
     if len(splitstr) != 2 {
         return fmt.Errorf("invalid command string '%s', expected it to contain '::'", cmdstring)
     }
@@ -117,10 +119,15 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
         // Validate all parameters
         pc := 0
         tparams_n := make([]string, 0)
-        for prm := range t.target_cmds[tgtname][tcommand].Parameters {
-            if pc < len(tparams) {
+        for prm := 0; prm < len(t.target_cmds[tgtname][tcommand].Parameters); prm++ {
+            if pc >= len(tparams) {
                 // Parameter not present, check if required
                 if !t.target_cmds[tgtname][tcommand].Parameters[prm].Optional {
+                    clog.Error("Non-optional parameter %s missing for command %s, target %s",
+                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            tcommand,
+                            tgtname,
+                        )
                     return fmt.Errorf("non-optional parameter '%s' missing for command '%s', target '%s'",
                             t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
                             tcommand,
@@ -131,6 +138,11 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
                 pval, err := t.target_cmds[tgtname][tcommand].Parameters[prm].Validate(tparams[pc])
                 if (err != nil) {
                     // validation returned an error
+                    clog.Error("Parameter validation %s failed for command %s, target %s",
+                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            tcommand,
+                            tgtname,
+                        )
                     return err
                 }
                 tparams_n = append(tparams_n, pval)
@@ -141,7 +153,11 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
         tparams = tparams_n
     }
     // Run the command
-    return t.targets[tgtname].SendCommand(tcommand, tparams...)
+    clog.Debug("--> Process cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
+    tstart = time.Now()
+    err := t.targets[tgtname].SendCommand(tcommand, tparams...)
+    clog.Debug("--> Execute cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
+    return err
 }
 
 // Split a string containing quoted strings on newlines, quotes, ... 

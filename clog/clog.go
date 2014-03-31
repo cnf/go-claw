@@ -19,6 +19,14 @@ const (
     FATAL
 )
 
+var short_lvl_names = [...]string{
+    "N",
+    "D",
+    "I",
+    "W",
+    "E",
+    "F",
+}
 var lvl_names = [...]string{
     "NONE ",
     "DEBUG",
@@ -34,6 +42,8 @@ const (
     Lmicroseconds
     Llongfile
     Lshortfile
+    Ltimebetween
+    Lshortlevel
     LstdFlags = Ldate | Ltime
 )
 
@@ -136,7 +146,7 @@ func itoa(buf *[]byte, i int, wid int) {
     }
     *buf = append(*buf, b[bp:]...)
 }
-func (l *Config) formatHeader(buf *[]byte, t time.Time, file string, line int) {
+func (l *Config) formatHeader(buf *[]byte, t time.Time, file string, line int, ltime time.Time) {
     //*buf = append(*buf, l.prefix...)
     if l.Flag&(Ldate|Ltime|Lmicroseconds) != 0 {
         *buf = append(*buf, '[')
@@ -164,6 +174,18 @@ func (l *Config) formatHeader(buf *[]byte, t time.Time, file string, line int) {
             }
         }
         *buf = append(*buf, ']')
+    }
+    if l.Flag&(Ltimebetween) != 0 {
+        //*buf = append(*buf, '(')
+        *buf = append(*buf, '+')
+        ts := time.Since(ltime).Nanoseconds()/1e3
+        if ts >= 10e6 {
+            ts = 10e6 - 1
+        }
+        itoa(buf, int(ts),7)
+        //*buf = append(*buf, ')')
+    }
+    if l.Flag&(Ldate|Ltime|Lmicroseconds|Ltimebetween) != 0 {
         *buf = append(*buf, ' ')
     }
     /*
@@ -189,6 +211,7 @@ func (l *Config) formatHeader(buf *[]byte, t time.Time, file string, line int) {
 func runlogger(cl chan *clogger, cf chan *Config) {
     var buf []byte
     defer close(stopch)
+    var ltime = time.Now()
     for {
         select {
         case newcfg := <-cf:
@@ -199,10 +222,10 @@ func runlogger(cl chan *clogger, cf chan *Config) {
             if newcfg.Writer != nil {
                 cfg.Writer = newcfg.Writer
             }
-            if (cfg.update_loglevel) {
+            if newcfg.update_loglevel {
                 cfg.Loglevel = newcfg.Loglevel
             }
-            if (cfg.update_flag) {
+            if newcfg.update_flag {
                 cfg.Flag = newcfg.Flag
             }
         case chn, ok := <-cl:
@@ -213,10 +236,14 @@ func runlogger(cl chan *clogger, cf chan *Config) {
                 continue
             }
             buf = buf[:0]
-            buf = append(buf, (lvl_names[chn.level] + " ")...)
+            if (cfg.Flag * Lshortlevel) != 0 {
+                buf = append(buf, (short_lvl_names[chn.level] + " ")...)
+            } else {
+                buf = append(buf, (lvl_names[chn.level] + " ")...)
+            }
             // No support for line number/filename at the moment
-            cfg.formatHeader(&buf, chn.time, "", 0)
-
+            cfg.formatHeader(&buf, chn.time, "", 0, ltime)
+            ltime = time.Now()
             // Append the real message
             buf = append(buf, (strings.TrimSpace(chn.message))...)
             if len(buf) > 0 && buf[len(buf)-1] != '\n' {

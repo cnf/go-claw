@@ -55,9 +55,6 @@ func Register() {
     //targets.RegisterAutoDetect(OnkyoAutoDetect)
 }
 
-func (d *OnkyoReceiver) Commands() map[string]*targets.Command {
-    return nil
-}
 func (d *OnkyoReceiver) Stop() error {
     return nil
 }
