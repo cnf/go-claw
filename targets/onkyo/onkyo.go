@@ -79,6 +79,8 @@ func (r *OnkyoReceiver) addRxCommand(msg string) (int64, error) {
     return r.seqnr - 1, nil
 }
 
+
+// Gets an expected response from the 
 func (r *OnkyoReceiver) expectRxCommand(seqnr int64, timeout int) (*rxCommand, error) {
     var tm = time.Now().Add(time.Duration(timeout) * time.Millisecond)
     for {
@@ -112,6 +114,7 @@ func (r *OnkyoReceiver) expectRxCommand(seqnr int64, timeout int) (*rxCommand, e
     }
 }
 
+// Go routine which reads responses from the sockets and if necessary pushes them back
 func (r *OnkyoReceiver) readOnkyoResponses(qchan, rchan chan rxCommand, conn net.Conn) {
     // Make sure to close the response channel
     defer close(rchan)
@@ -122,7 +125,7 @@ func (r *OnkyoReceiver) readOnkyoResponses(qchan, rchan chan rxCommand, conn net
     currseq = -1
     for {
         // Every 100ms, check everything
-        conn.SetReadDeadline(time.Now().Add(time.Duration(100) * time.Millisecond))
+        //conn.SetReadDeadline(time.Now().Add(time.Duration(1000) * time.Millisecond))
         rcmd, err = ReadOnkyoFrameTCP(conn)
         if err != nil {
             nerr, ok := err.(net.Error)
