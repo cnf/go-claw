@@ -31,9 +31,21 @@ type OnkyoReceiver struct {
     Model string
     Identifier string
 
+    rxmu sync.Mutex
+    seqnr int64
+    rxQchan chan rxCommand
+    rxRchan chan rxCommand
+
     con net.Conn
     mu sync.Mutex
     lastsend time.Time
+}
+
+type rxCommand struct {
+    msg string
+    rxtime time.Time
+    txtime time.Time
+    seq int64
 }
 
 
@@ -50,17 +62,128 @@ func (d *OnkyoReceiver) Stop() error {
     return nil
 }
 
-/*
-params["model"]       = "TX-NR509"
-params["id"]         = "CAFFEE"
-params["connection"] = "serial|tcp*"
-params["device"]     = "/dev/ttyS1"
-params["host"]       = "192.168.0.1:123"
-*/
+func (r *OnkyoReceiver) addRxCommand(msg string) (int64, error) {
+    var push rxCommand
+
+    push.msg  = msg
+    push.txtime = time.Now()
+    // Safeguard the sequence number
+    r.rxmu.Lock()
+    defer r.rxmu.Unlock()
+    push.seq = r.seqnr
+    r.seqnr++
+
+    // Push on the channel - but don't block
+    select {
+    case r.rxQchan <- push:
+    default:
+        return -1, errors.New("could not push expected message onto channel")
+    }
+    return r.seqnr, nil
+}
+
+func (r *OnkyoReceiver) expectRxCommand(seqnr int64, timeout int) (*rxCommand, error) {
+    var tm = time.Now().Add(time.Duration(timeout) * time.Millisecond)
+    for {
+        // Determine the current timeout
+        w := tm.Sub(time.Now())
+        if (w <= 0) {
+            return nil, errors.New("timeout getting expected command")
+        }
+        select {
+        case msg, ok := <- r.rxRchan:
+            if (!ok) {
+                // Oops?
+            } else if msg.seq < seqnr {
+                // Older sequence found, skip
+                continue
+            } else if (msg.seq == seqnr) {
+                // we found our match
+                ret := new(rxCommand)
+                *ret = msg
+                return ret, nil
+            } else {
+                return nil, errors.New("sequence number skipped, - desynchronized?")
+            }
+        case <- time.After(w):
+            return nil, errors.New("timeout getting expected command")
+        }
+    }
+}
+
+func (r *OnkyoReceiver) readOnkyoResponses(qchan, rchan chan rxCommand, conn net.Conn) {
+    // Make sure to close the response channel
+    defer close(rchan)
+    var rcmd *OnkyoFrameTCP
+    var err error
+    var expectlist = make([]rxCommand, 0)
+    var currseq int64
+    currseq = -1
+    for {
+        // Every 100ms, check everything
+        conn.SetReadDeadline(time.Now().Add(time.Duration(100) * time.Millisecond))
+        rcmd, err = ReadOnkyoFrameTCP(conn)
+        if err != nil {
+            nerr, ok := err.(net.Error)
+            if !ok {
+                clog.Warn("OnkyoReceiver::readOnkyoResponses frame error: %s", err.Error())
+            } else if !nerr.Temporary() && !nerr.Timeout() {
+                clog.Error("OnkyoReceiver::readOnkyoResponses: %s - exiting go-routine", err.Error())
+                // Close the response channel
+                return
+            }
+        } else {
+            clog.Debug("Got Onkyo response: '%s'", rcmd.Message())
+        }
+        // Check if we have expected commands waiting for us
+        for {
+            select {
+            case cmd, ok := <-qchan:
+                if !ok {
+                    // Response channel closed?
+                    clog.Error("OnkyoReceiver::readOnkyoResponses: error reading repsonse channel - aborting")
+                    return
+                }
+                expectlist = append(expectlist, cmd)
+                if currseq < 0 {
+                    currseq = cmd.seq - 1
+                }
+            default:
+                // No responses - break out of the loop
+                break
+            }
+        }
+        if (rcmd == nil) {
+            continue
+        }
+        // Walk backward, only respond to latest request
+        for i := len(expectlist) - 1; i >= 0; i-- {
+            // Remove frames older than 16 seconds
+            if (time.Since(expectlist[i].txtime) > (time.Duration(16000) * time.Millisecond)) ||
+               (expectlist[i].seq <= currseq) {
+                // remove from list
+                expectlist = append(expectlist[:i], expectlist[i+1:]...)
+                continue
+            }
+            if (expectlist[i].msg[0:3] == rcmd.Message()[0:3]) {
+                var rv rxCommand
+                // Synchronize sequences
+                currseq = expectlist[i].seq
+
+                rv.rxtime = time.Now()
+                rv.txtime = expectlist[i].txtime
+                rv.seq = currseq
+                rv.msg = rcmd.Message()
+                rchan <- rv
+                // New sequences are added to the end - so we can remove all previous entries
+                expectlist = expectlist[i+1:]
+                break
+            }
+        }
+    }
+}
 
 func (r *OnkyoReceiver) doConnect() error {
-    r.mu.Lock()
-    defer r.mu.Unlock()
     if (r.Transport == TransportSerial) {
         return errors.New("onkyo serial connection is not implemented!")
     }
@@ -98,6 +221,13 @@ func (r *OnkyoReceiver) doConnect() error {
                 continue
             }
         } else {
+            // All ok - create response channel and launch go-routine
+            if r.rxQchan != nil {
+                close(r.rxQchan)
+            }
+            r.rxQchan = make(chan rxCommand, 10) // Buffered channel
+            r.rxRchan = make(chan rxCommand, 10) // Buffered channel
+            go r.readOnkyoResponses(r.rxQchan, r.rxRchan, r.con)
             return nil
         }
     }
@@ -154,11 +284,29 @@ func (r *OnkyoReceiver) processparams(pname string, params map[string]string) er
     return nil
 }
 
-func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
+// Send a command to the onkyo.
+// timeout = timeout to wait for response in ms
+//   timeout = 0 -> no response expected.
+//   timeout < 0 -> default timeout (15 seconds)
+//   timeout > 0 -> timeout in ms
+func (r *OnkyoReceiver) sendCmd(cmd string, timeout int) (string, error) {
+    // Don't allow commands to be sent simultaneously
+    r.mu.Lock()
+    defer r.mu.Unlock()
     errcnt := 0
-    //buf := make([]byte, 1024)
+    var waitseq int64
+    var err error
+
+    if (timeout != 0) {
+        waitseq, err = r.addRxCommand(cmd)
+        if err != nil {
+            return "", err
+        }
+    } else {
+        waitseq = -1
+    }
     for {
-        if (errcnt >= 3) {
+        if (errcnt >= 2) {
             return "", errors.New("Could not send command: retry count exceeded")
         }
         if err := r.doConnect(); err != nil {
@@ -172,12 +320,14 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
                 time.Sleep((time.Duration(50) * time.Millisecond) - tdiff)
             }
             //clog.Debug("Sending command to Onkyo: %s", cmd)
-            r.con.SetWriteDeadline(time.Now().Add(time.Duration(300) * time.Millisecond))
+            //r.con.SetWriteDeadline(time.Now().Add(time.Duration(500) * time.Millisecond))
+            // Clean out the response channel if anything is there
             _, err := r.con.Write(NewOnkyoFrameTCP(cmd).Bytes())
             r.lastsend = time.Now()
             if (err != nil) {
                 // check error type
                 if nerr, ok := err.(net.Error); !ok || !nerr.Temporary() {
+                    // Socket error - close, and retry
                     r.con.Close()
                     r.con = nil
                 } else if (errcnt == 1) {
@@ -188,19 +338,18 @@ func (r *OnkyoReceiver) sendCmd(cmd string) (string, error) {
                 errcnt++
                 continue;
             }
-            // Read the response
-            var rcmd *OnkyoFrameTCP
-            for {
-                r.con.SetReadDeadline(time.Now().Add(time.Duration(4000) * time.Millisecond))
-                rcmd, err = ReadOnkyoFrameTCP(r.con)
-                clog.Debug("Onkyo '%s' response: '%s'", cmd, rcmd.Message())
-                if (rcmd.Message()[0:3] == cmd[0:3]) {
-                    clog.Debug("Onkyo response OK")
-                    break
+            if (waitseq > 0 ) {
+                // default timeout = 15 seconds
+                if timeout < 0 {
+                    timeout = 15000
                 }
+                cmd, err := r.expectRxCommand(waitseq, timeout)
+                if (err != nil) {
+                    return "", err
+                }
+                return cmd.msg, nil
             }
-            r.lastsend = time.Now()
-            return rcmd.Message(), nil
+            return "", nil
         case TransportSerial:
             return "", errors.New("onkyo serial protocol not implemented")
         }
