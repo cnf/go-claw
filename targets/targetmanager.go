@@ -153,8 +153,8 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
         tparams = tparams_n
     }
     // Run the command
-    clog.Debug("--> Process cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
-    tstart = time.Now()
+    //clog.Debug("--> Process cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
+    //tstart = time.Now()
     err := t.targets[tgtname].SendCommand(tcommand, tparams...)
     clog.Debug("--> Execute cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
     return err
