@@ -128,23 +128,11 @@ func (d *Dispatcher) resolve(input string) (mod string, cmd string, args string,
 }
 
 func (d *Dispatcher) sender(mod string, cmd string, args string) bool {
-    if mod == "mode" {
-        return d.setMode(cmd)
-    }
     if t, ok := d.targetmap[mod]; ok {
         err := t.SendCommand(cmd, args)
         if err != nil {
             clog.Debug("Dispatch: failed to send command `%s` for `%s` with error: %s", cmd, mod, err)
         }
-        return true
-    }
-    return false
-}
-
-func (d *Dispatcher) setMode(mode string) bool {
-    if _, ok := d.modemap[mode]; ok {
-        clog.Info("Dispatch: mode changed to `%s`", mode)
-        d.activemode = mode
         return true
     }
     return false
