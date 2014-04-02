@@ -1,0 +1,86 @@
+{
+  "listeners": {
+    "lirc": {
+      "module": "lircsocket",
+      "params": {
+        "path": "/var/run/lirc/lircd"
+      }
+    }
+  },
+  "modes": {
+    "default": {
+      "keys": {
+        "KEY_VOLUMEUP": [
+          "AVR::VolumeUp"
+        ],
+        "KEY_POWER": [
+          "PC::PowerOn",
+          "PlexHT::PowerOn",
+          "AVR::PowerOn"
+        ],
+        "KEY_VOLUMEDOWN": [
+          "AVR::VolumeDown"
+        ],
+        "RED": [
+          "mode::plex"
+        ],
+        "KEY_MUTE": [
+          "AVR::Mute"
+        ]
+      },
+      "exit": [
+      ],
+      "entry": [
+      ]
+    },
+    "plex": {
+      "exit": [
+      ],
+      "entry": [
+        "AVR::Input1"
+      ],
+      "keys": {
+        "KEY_BACK": [
+          "PlexHT::Back"
+        ],
+        "KEY_OK": [
+          "PlexHT::SmartSelect"
+        ],
+        "KEY_LEFT": [
+          "PlexHT::SmartLeft"
+        ],
+        "KEY_RIGHT": [
+          "PlexHT::SmartRight"
+        ],
+        "KEY_DOWN": [
+          "PlexHT::SmartDown"
+        ],
+        "KEY_UP": [
+          "PlexHT::SmartUp"
+        ]
+      }
+    }
+  },
+  "targets": {
+    "PC": {
+      "module": "linux",
+      "params": {
+        "wol": "00:0a:95:9d:68:16"
+      }
+    },
+    "PlexHT": {
+      "module": "plex",
+      "params": {
+        "wol": "00:0a:95:9d:68:17",
+        "name": "plex"
+      }
+    },
+    "AVR": {
+      "module": "denon",
+      "params": {
+        "address": "192.168.0.10",
+        "port": "23"
+      }
+    }
+  }
+}
