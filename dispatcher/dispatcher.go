@@ -7,6 +7,7 @@ import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/clog"
 
+// Dispatcher holds all the dispatcher info
 type Dispatcher struct {
     Configfile string
     config Config
@@ -14,6 +15,7 @@ type Dispatcher struct {
     listenermap map[string]*listeners.Listener
     targetmap map[string]targets.Target
     modemap map[string]*Mode
+    modes *Modes
     activemode string
     cs *listeners.CommandStream
 }
@@ -54,19 +56,8 @@ func (d *Dispatcher) setupListeners() {
 }
 
 func (d *Dispatcher) setupModes() {
-    d.modemap = make(map[string]*Mode)
-    for k, v := range d.config.Modes {
-        clog.Info("Setting up mode: %s", k)
-        d.modemap[k] = &Mode{Keys: make(map[string][]string)}
-        for kk, kv := range v {
-            d.modemap[k].Keys[kk] = make([]string, len(kv))
-            i := 0
-            for _, av := range kv {
-                d.modemap[k].Keys[kk][i] = av
-                i++
-            }
-        }
-    }
+    d.modes = &Modes{}
+    d.modes.Setup(d.config.Modes)
 }
 
 func (d *Dispatcher) setupTargets() {
@@ -89,28 +80,18 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
         clog.Info("Dispatch: Key timeout reached: %# v", tdiff.String())
         return false
     }
-    var mod string
-    var cmd string
-    var args string
+    var mod, cmd, args string
     var rok bool
     // FIXME: NEED NEW MODES!
     // FIXME: Things crash here sometimes
-    if _, ok := d.modemap[d.activemode]; !ok { d.activemode = "default" }
-    if val, ok := d.modemap[d.activemode].Keys[rc.Key]; ok {
-        for _, v := range val {
-            mod, cmd, args, rok = d.resolve(v)
-            d.sender(mod, cmd, args)
-        }
-        return true
-    } else if val, ok := d.modemap["default"].Keys[rc.Key]; ok {
-        for _, v := range val {
-            mod, cmd, args, rok = d.resolve(v)
-            d.sender(mod, cmd, args)
-        }
-        return true
-    } else {
-        clog.Info("Dispatch: key `%s` Not found in any mode.", rc.Key)
+    actions, err := d.modes.ActionsFor(rc.Key)
+    if err != nil {
+        clog.Debug("Dispatcher: %s", err)
         return false
+    }
+    for _, v := range actions {
+        mod, cmd, args, rok = d.resolve(v)
+        d.sender(mod, cmd, args)
     }
     if !rok {
         return false
