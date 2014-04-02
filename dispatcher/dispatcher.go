@@ -57,7 +57,10 @@ func (d *Dispatcher) setupListeners() {
 
 func (d *Dispatcher) setupModes() {
     d.modes = &Modes{}
-    d.modes.Setup(d.config.Modes)
+    err := d.modes.Setup(d.config.Modes)
+    if err != nil {
+        clog.Error("Dispatcher: could not set up modes: %s", err)
+    }
 }
 
 func (d *Dispatcher) setupTargets() {
@@ -82,8 +85,6 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     }
     var mod, cmd, args string
     var rok bool
-    // FIXME: NEED NEW MODES!
-    // FIXME: Things crash here sometimes
     actions, err := d.modes.ActionsFor(rc.Key)
     if err != nil {
         clog.Debug("Dispatcher: %s", err)
@@ -91,6 +92,17 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     }
     for _, v := range actions {
         mod, cmd, args, rok = d.resolve(v)
+        if mod == "mode" {
+            cmdlist, err := d.modes.SetActive(cmd)
+            if err != nil {
+                return false
+            }
+            for _, v := range cmdlist {
+                clog.Debug("Dispatcher: running exit/entry")
+                mod, cmd, args, rok = d.resolve(v)
+                d.sender(mod, cmd, args)
+            }
+        }
         d.sender(mod, cmd, args)
     }
     if !rok {
