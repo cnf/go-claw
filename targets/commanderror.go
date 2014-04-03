@@ -30,7 +30,7 @@ func (c *CommandError) Command()      string   { return c.command }
 func (c *CommandError) CommandFound() bool     { return c.commandfound }
 func (c *CommandError) Params()       []string { return c.params }
 
-func (c *CommandError) Error() string {
+func (c CommandError) Error() string {
     if (!c.targetfound) {
         return fmt.Sprintf("could not execute '%s::%s \"%s\"': target not found",
                 c.target, c.command, strings.Join(c.params, "\", \""),
