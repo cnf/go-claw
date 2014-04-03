@@ -6,6 +6,7 @@ import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/clog"
 
+// Dispatcher holds all the dispatcher info
 type Dispatcher struct {
     Configfile string
     config Config
@@ -13,12 +14,14 @@ type Dispatcher struct {
     listenermap map[string]*listeners.Listener
     targetmanager *targets.TargetManager
     modemap map[string]*Mode
+    modes *Modes
     activemode string
     cs *listeners.CommandStream
 }
 
 func (d *Dispatcher) Start() {
     defer d.cs.Close()
+    d.activemode = "default"
     d.keytimeout = time.Duration(120 * time.Millisecond)
     d.readConfig()
     d.setupListeners()
@@ -52,27 +55,11 @@ func (d *Dispatcher) setupListeners() {
 }
 
 func (d *Dispatcher) setupModes() {
-    d.modemap = make(map[string]*Mode)
-
-    for k, v := range d.config.Modes {
-        clog.Info("Setting up mode: %s", k)
-        d.modemap[k] = &Mode{Keys: make(map[string][]string)}
-        for kk, kv := range v {
-            d.modemap[k].Keys[kk] = make([]string, len(kv))
-            i := 0
-            for _, av := range kv {
-                d.modemap[k].Keys[kk][i] = av
-                i++
-            }
-        }
+    d.modes = &Modes{}
+    err := d.modes.Setup(d.config.Modes)
+    if err != nil {
+        clog.Error("Dispatcher: could not set up modes: %s", err)
     }
-
-    // Ensure the "default" mode map exists
-    if _, ok := d.modemap["default"]; !ok {
-        clog.Warn("Warning: 'default' modemap did not exist - adding dummy")
-        d.modemap["default"] = &Mode{Keys: make(map[string][]string)}
-    }
-    d.setMode("default")
 }
 
 func (d *Dispatcher) setupTargets() {
@@ -99,37 +86,29 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
         return false
     }
     var rok = true
-    // FIXME: NEED NEW MODES!
-    if _, ok := d.modemap[d.activemode]; !ok {
-        d.setMode("default")
+    actions, err := d.modes.ActionsFor(rc.Key)
+    if err != nil {
+        clog.Debug("Dispatcher: %s", err)
+        return false
     }
-    if val, ok := d.modemap[d.activemode].Keys[rc.Key]; ok {
-        for _, v := range val {
-            if err := d.targetmanager.RunCommand(v); err != nil {
-                clog.Warn("Command failed: %s", v)
-                rok = false
-            }
+    for _, v := range actions {
+        err := d.targetmanager.RunCommand(v)
+        if err != nil {
+            continue
         }
-    } else if val, ok := d.modemap["default"].Keys[rc.Key]; ok {
-        for _, v := range val {
-            if err := d.targetmanager.RunCommand(v); err != nil {
-                clog.Warn("Command failed: %s", v)
-                rok = false
+        if cerr, ok := err.(targets.CommandError); ok {
+            if (!cerr.TargetFound()) && (cerr.Target() == "mode") {
+                merr := d.modes.SetActive(cerr.Command(), d.targetmanager)
+                if merr != nil {
+                    clog.Error("Error: could not set mode %s: ", cerr.Command(), merr.Error())
+                    return false
+                }
             }
+            // All ok?
+            continue
         }
-    } else {
-        clog.Warn("Dispatch: key `%s` Not found in any mode.", rc.Key)
         rok = false
     }
-
     return rok
 }
 
-func (d *Dispatcher) setMode(mode string) bool {
-    if _, ok := d.modemap[mode]; ok {
-        clog.Info("Dispatch: mode changed to `%s`", mode)
-        d.activemode = mode
-        return true
-    }
-    return false
-}

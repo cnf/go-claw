@@ -9,7 +9,7 @@ package dispatcher
 type Config struct {
     // Modes map[string]map[string][]string `json:"mode"`
     Listeners map[string]ConfigListener
-    Modes map[string]ConfigMode
+    Modes map[string]*Mode
     Targets map[string]ConfigTarget
 }
 
