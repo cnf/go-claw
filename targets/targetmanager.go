@@ -7,6 +7,7 @@ import "unicode"
 import "time"
 import "github.com/cnf/go-claw/clog"
 
+
 type TargetManager struct {
     targets map[string]Target
     target_cmds map[string]map[string]*Command
@@ -99,13 +100,15 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
     tgtname := splitstr[0]
 
     if _, ok := t.targets[tgtname]; !ok {
-        return fmt.Errorf("command '%s' uses a target '%s' that does not exist", cmdstring, tgtname)
+        //return fmt.Errorf("command '%s' uses a target '%s' that does not exist", cmdstring, tgtname)
+        return NewCommandError(tgtname, false, splitstr[1], false, nil)
     }
 
     // Split the command
     splitcmd := splitQuoted(splitstr[1])
     if len(splitcmd)  == 0 {
-        return fmt.Errorf("empty target command in '%s'", cmdstring)
+        //return fmt.Errorf("empty target command in '%s'", cmdstring)
+        return NewCommandError(tgtname, true, splitstr[1], false, nil)
     }
     tcommand := splitcmd[0]
     tparams := splitcmd[1:]
@@ -114,7 +117,8 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
     if _, ok := t.target_cmds[tgtname]; ok && t.target_cmds[tgtname] != nil {
         // Check if the command exists for this target
         if _, ok := t.target_cmds[tgtname][tcommand]; !ok {
-            return fmt.Errorf("command '%s' not recognized by target '%s'", tcommand, tgtname)
+            //return fmt.Errorf("command '%s' not recognized by target '%s'", tcommand, tgtname)
+            return NewCommandError(tgtname, true, tcommand, false, tparams)
         }
         // Validate all parameters
         pc := 0
