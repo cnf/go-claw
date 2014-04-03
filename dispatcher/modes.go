@@ -3,6 +3,7 @@ package dispatcher
 import "fmt"
 
 import "github.com/cnf/go-claw/clog"
+import "github.com/cnf/go-claw/targets"
 
 // Mode holds the data for a single mode
 type Mode struct {
@@ -36,21 +37,33 @@ func (m *Modes) ActionsFor(key string) ([]string, error) {
 }
 
 // SetActive text
-func (m *Modes) SetActive(mode string) ([]string, error) {
-    var actions []string
+func (m *Modes) SetActive(mode string, tm *targets.TargetManager) error {
     if m.ModeMap[mode] == nil {
-        return actions, fmt.Errorf("no such mode found: %s", mode)
+        return fmt.Errorf("no such mode found: %s", mode)
     }
     if m.active != nil {
-        actions = append(actions, m.active.Exit...)
+        clog.Debug("Modes: `%s` - running Exit commands...", m.name)
+        for i := 0; i < len(m.active.Exit); i++ {
+            err := tm.RunCommand(m.active.Exit[i])
+            if err != nil {
+                clog.Warn("Modes: Error executing '%s':", m.active.Exit[i])
+                clog.Warn("       %s", err.Error())
+            }
+        }
     }
     m.active = m.ModeMap[mode]
     m.name = mode
-    actions = append(actions, m.active.Entry...)
 
-    clog.Debug("Modes: `%s` is now active", mode)
-
-    return actions, nil
+    clog.Debug("Modes: `%s` - running Entry commands...", m.name)
+    for i := 0; i < len(m.active.Entry); i++ {
+        err := tm.RunCommand(m.active.Entry[i])
+        if err != nil {
+            clog.Warn("Modes: Error executing '%s':", m.active.Entry[i])
+            clog.Warn("       %s", err.Error())
+        }
+    }
+    clog.Debug("Modes: `%s` is now active", m.name)
+    return nil
 }
 
 // Setup sets up a new mode structure
