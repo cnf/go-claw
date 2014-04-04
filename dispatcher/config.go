@@ -1,15 +1,11 @@
 package dispatcher
 
-// type Config struct {
-//     cfgfile string
-//     Home string
-//     System System
-// }
+import "github.com/cnf/go-claw/modes"
 
 type Config struct {
     // Modes map[string]map[string][]string `json:"mode"`
     Listeners map[string]ConfigListener
-    Modes map[string]*Mode
+    Modes map[string]*modes.Mode
     Targets map[string]ConfigTarget
 }
 

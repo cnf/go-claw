@@ -5,7 +5,9 @@ import "errors"
 import "strings"
 import "unicode"
 import "time"
+
 import "github.com/cnf/go-claw/clog"
+import "github.com/cnf/go-claw/modes"
 
 
 type TargetManager struct {
@@ -14,7 +16,7 @@ type TargetManager struct {
 }
 
 // Create and initialize a new TargetManager object
-func NewTargetManager() *TargetManager {
+func NewTargetManager(m *modes.Modes) *TargetManager {
     ret := &TargetManager{ 
             targets    : make(map[string]Target),
             target_cmds: make(map[string]map[string]*Command),

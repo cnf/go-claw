@@ -3,6 +3,7 @@ package dispatcher
 import "time"
 
 import "github.com/cnf/go-claw/listeners"
+import "github.com/cnf/go-claw/modes"
 import "github.com/cnf/go-claw/targets"
 import "github.com/cnf/go-claw/clog"
 
@@ -13,8 +14,7 @@ type Dispatcher struct {
     keytimeout time.Duration
     listenermap map[string]*listeners.Listener
     targetmanager *targets.TargetManager
-    modemap map[string]*Mode
-    modes *Modes
+    modes *modes.Modes
     activemode string
     cs *listeners.CommandStream
 }
@@ -55,7 +55,7 @@ func (d *Dispatcher) setupListeners() {
 }
 
 func (d *Dispatcher) setupModes() {
-    d.modes = &Modes{}
+    d.modes = &modes.Modes{}
     err := d.modes.Setup(d.config.Modes)
     if err != nil {
         clog.Error("Dispatcher: could not set up modes: %s", err)
@@ -64,7 +64,7 @@ func (d *Dispatcher) setupModes() {
 
 func (d *Dispatcher) setupTargets() {
     if d.targetmanager == nil {
-        d.targetmanager = targets.NewTargetManager()
+        d.targetmanager = targets.NewTargetManager(d.modes)
     }
     // Stop and remove all targets if needed
     d.targetmanager.Stop()
@@ -94,21 +94,8 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     for _, v := range actions {
         err := d.targetmanager.RunCommand(v)
         if err != nil {
-            continue
+            rok = false
         }
-        if cerr, ok := err.(targets.CommandError); ok {
-            if (!cerr.TargetFound()) && (cerr.Target() == "mode") {
-                merr := d.modes.SetActive(cerr.Command(), d.targetmanager)
-                if merr != nil {
-                    clog.Error("Error: could not set mode %s: ", cerr.Command(), merr.Error())
-                    return false
-                }
-            }
-            // All ok?
-            continue
-        }
-        rok = false
     }
     return rok
 }
-
