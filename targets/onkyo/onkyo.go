@@ -177,6 +177,7 @@ func (r *OnkyoReceiver) readOnkyoResponses(qchan, rchan chan rxCommand, conn net
         if (rcmd == nil) {
             continue
         }
+        clog.Debug("onkyo:readOnkyoResponses: Got '%s'", rcmd.Message())
         // Walk backward, only respond to latest request
         for i := len(expectlist) - 1; i >= 0; i-- {
             // Remove frames older than 16 seconds
