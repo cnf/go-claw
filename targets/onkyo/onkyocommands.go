@@ -24,6 +24,12 @@ func (d *OnkyoReceiver) Commands() map[string]*targets.Command {
         "Volume"      : targets.NewCommand("Sets the volume",
                 targets.NewParameter("volumelevel", "The volume level").SetRange(0, 77),
                 ),
+        "Input"       : targets.NewCommand("selects an input",
+                targets.NewParameter("input", "the input to select").SetList("test|test2"),
+                ),
+        "InputRaw"    : targets.NewCommand("Selects raw input number",
+                targets.NewParameter("input", "the input number").SetNumeric(),
+                ),
     }
     if (true) {
         // Fix the volume range for specific models
@@ -72,6 +78,12 @@ func (r *OnkyoReceiver) Power(state string) (string, error) {
     }
     return rv, err
 }
+
+func (r *OnkyoReceiver) setInput(input string) error {
+    _, err := r.sendCmd(fmt.Sprintf("SLI%s", input), 0)
+    return err
+}
+
 func (r *OnkyoReceiver) onkyoCommand(cmd string, args []string) error {
     var err error
     switch cmd {
@@ -99,6 +111,13 @@ func (r *OnkyoReceiver) onkyoCommand(cmd string, args []string) error {
         ml, _ := strconv.Atoi(args[0])
         // TODO: Most models require hex volume level, some require decimal!
         _, err = r.sendCmd(fmt.Sprintf("MVL%02X", ml), 0)
+    case "InputRaw":
+        ml, _ := strconv.Atoi(args[0])
+        _, err = r.sendCmd(fmt.Sprintf("SLI%02X", ml), 0)
+    case "Input":
+        err = r.setInput(args[0])
+    default:
+        err = fmt.Errorf("unknown command for onkyo module: '%s'", cmd)
     }
     return err
 }
