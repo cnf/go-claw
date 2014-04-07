@@ -23,6 +23,7 @@ func NewTargetManager(m *modes.Modes) *TargetManager {
         }
     // Add and register the mode commands
     ret.modes = m
+    clog.Debug("Adding internal mode target...")
     ret.Add("mode", "mode", nil)
 
     return ret

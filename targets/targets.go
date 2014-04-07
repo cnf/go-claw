@@ -21,7 +21,7 @@ func RegisterTarget(name string, creator CreateTarget) {
     clog.Info("Registering target: %s", name)
 
     if targetlist[name] != nil {
-        panic("RegisterTarget: error " + name + " already exists! Pick another name for your module!")
+        panic("RegisterTarget: target name '" + name + "' already exists! Pick another name for your module!")
     }
 
     targetlist[name] = creator

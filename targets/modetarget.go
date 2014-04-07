@@ -17,6 +17,7 @@ func (m *ModeTarget) Commands() map[string]*Command {
     }
     cmds := make(map[string]*Command)
     for m := range(m.targetmanager.modes.ModeMap) {
+        clog.Debug("ModeTarget: Adding 'mode::%s'", m)
         cmds[m] = NewCommand(m, "Selects the mode '" + m + "'")
     }
     /* For future reference - add "set" command?
@@ -39,6 +40,7 @@ func (t *ModeTarget) SendCommand(cmd string, args ...string) error {
     t.modeactive = cmd
     defer func() { t.modeactive = "" }()
 
+    clog.Debug("Setting mode to: '%s'", cmd)
     str, err := t.targetmanager.modes.SetActive(cmd)
     if err != nil {
         return err
