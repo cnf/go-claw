@@ -82,19 +82,20 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
     tdiff := time.Since(rc.Time)
     clog.Debug("Dispatch: --> t: %s", tdiff.String())
     if tdiff > d.keytimeout {
-        clog.Info("Dispatch: Key timeout reached: %# v", tdiff.String())
+        clog.Info("dispatch: Key timeout reached: %# v", tdiff.String())
         return false
     }
     var rok = true
     actions, err := d.modes.ActionsFor(rc.Key)
     if err != nil {
-        clog.Debug("Dispatcher: %s", err)
+        clog.Debug("dispatch:ActionsFor: %s", err)
         return false
     }
     for _, v := range actions {
         err := d.targetmanager.RunCommand(v)
         if err != nil {
             rok = false
+            clog.Debug("dispatch:RunCommand: %s", err)
         }
     }
     return rok
