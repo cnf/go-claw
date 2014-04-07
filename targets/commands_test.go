@@ -60,12 +60,12 @@ func printCommands(cmds map[string]*Command) {
 
 func Test_CommandList(t *testing.T) {
     cmds := map[string]*Command {
-        "Test": NewCommand("Test", "Test Command",
-                NewParameter("Amount", "Test parameter", true).SetRange(0,100),
+        "Test": NewCommand("Test Command",
+                NewParameter("Amount", "Test parameter").SetRange(0,100).SetOptional(),
             ),
-        "Test2": NewCommand("Test2", "Another test command",
-                NewParameter("prm1", "blabla", false).SetList("option1", "option2"),
-                NewParameter("prm2", "blabla", false).SetRegex("[a-z]*"),
+        "Test2": NewCommand("Another test command",
+                NewParameter("prm1", "blabla").SetList("option1", "option2"),
+                NewParameter("prm2", "blabla").SetRegex("[a-z]*"),
             ),
     }
     printCommands(cmds)

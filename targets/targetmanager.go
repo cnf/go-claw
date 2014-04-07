@@ -60,6 +60,11 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
         clog.Warn("warning: %s::%s returned an empty command list!", module, name)
     } else {
         t.target_cmds[name] = tcmdlist
+        for r := range(t.target_cmds[name]) {
+            if t.target_cmds[name][r].Name == "" {
+                t.target_cmds[name][r].Name = r
+            }
+        }
     }
 
     return nil

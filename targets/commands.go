@@ -26,19 +26,19 @@ type CommandParameter struct {
     validation_fnc ParameterValidator
 }
 
-func NewCommand(name, desc string, param... *CommandParameter) *Command {
+func NewCommand(desc string, param... *CommandParameter) *Command {
     ret := new(Command)
-    ret.Name = name
+    ret.Name = ""
     ret.Description = desc
     ret.Parameters = param
     return ret
 }
 
-func NewParameter(name, desc string, optional bool) *CommandParameter {
+func NewParameter(name, desc string) *CommandParameter {
     ret := new(CommandParameter)
     ret.Name = name
     ret.Description = desc
-    ret.Optional = optional
+    ret.Optional = false
     ret.Type = "empty"
     ret.Validation = ""
     ret.validation_fnc = nil
@@ -125,6 +125,12 @@ func (c *CommandParameter) SetCustom(validation string, fnc ParameterValidator) 
     c.Validation = validation
     c.validation_fnc = fnc
 
+    return c
+}
+
+// SetOptional sets this Command Parameter to be optional
+func (c *CommandParameter) SetOptional() *CommandParameter {
+    c.Optional = true
     return c
 }
 
