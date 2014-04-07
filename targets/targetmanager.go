@@ -17,15 +17,10 @@ type TargetManager struct {
 
 // Create and initialize a new TargetManager object
 func NewTargetManager(m *modes.Modes) *TargetManager {
-    ret := &TargetManager{ 
-            targets    : make(map[string]Target),
-            target_cmds: make(map[string]map[string]*Command),
-        }
-    // Add and register the mode commands
-    ret.modes = m
-    clog.Debug("Adding internal mode target...")
-    ret.Add("mode", "mode", nil)
-
+    ret := &TargetManager{ targets: nil, target_cmds: nil, modes: m }
+    //clog.Debug("Adding internal mode target...")
+    //ret.Add("mode", "mode", nil)
+    ret.Stop()
     return ret
 }
 
@@ -94,6 +89,9 @@ func (t *TargetManager) Stop() error {
     }
     t.targets    = make(map[string]Target)
     t.target_cmds = make(map[string]map[string]*Command)
+    clog.Debug("TargetManager::Stop(): Adding internal mode target...")
+    t.Add("mode", "mode", nil)
+
     return nil
 }
 
