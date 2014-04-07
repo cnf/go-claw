@@ -50,7 +50,7 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
     t.targets[name] = tgt
 
     // Special case - test if this is the modes target
-    if mt, ok := tgt.(*ModeTarget); ok {
+    if mt, ok := tgt.(*ClawTarget); ok {
         mt.setTargetManager(t)
     }
 
@@ -94,8 +94,8 @@ func (t *TargetManager) Stop() error {
     }
     t.targets    = make(map[string]Target)
     t.target_cmds = make(map[string]map[string]*Command)
-    clog.Debug("TargetManager::Stop(): Adding internal mode target...")
-    t.Add("mode", "mode", nil)
+    clog.Debug("TargetManager::Stop(): Adding internal claw target...")
+    t.Add("claw", "claw", nil)
 
     return nil
 }

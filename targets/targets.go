@@ -11,7 +11,7 @@ type Target interface {
 
 
 func init() {
-    RegisterTarget("mode", createModeHandler);
+    RegisterTarget("claw", createClawTarget);
 }
 
 type CreateTarget func(name string, params map[string]string) (t Target, err error)

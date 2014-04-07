@@ -1,47 +1,53 @@
 package targets
 
 import "fmt"
+import "strings"
 
 import "github.com/cnf/go-claw/clog"
 //import "github.com/cnf/go-claw/modes"
 
-type ModeTarget struct {
+type ClawTarget struct {
     targetmanager *TargetManager
     modeactive string
 }
 
 // RegisterTarget("modes", createModes)
-func (m *ModeTarget) Commands() map[string]*Command {
-    if m.targetmanager == nil {
+func (t *ClawTarget) Commands() map[string]*Command {
+    if t.targetmanager == nil {
         return nil
     }
     cmds := make(map[string]*Command)
-    for m := range(m.targetmanager.modes.ModeMap) {
-        clog.Debug("ModeTarget: Adding 'mode::%s'", m)
-        cmds[m] = NewCommand("Selects the mode '" + m + "'")
+
+
+    // Add the mode command
+    modelist := make([]string, len(t.targetmanager.modes.ModeMap))
+    i := 0
+    for m, _ := range t.targetmanager.modes.ModeMap {
+        modelist[i] = m
+        i++
     }
-    /* For future reference - add "set" command?
-    cmds["set"] = NewCommand("select a mode",
-                    NewParameter("mode", "the mode to select").SetString(),
-                )
-    */
+    cmds["mode"] = NewCommand("Selects a mode", 
+                       NewParameter("mode", "the mode to select").SetList(strings.Join(modelist, "|")),
+                   )
+    // Add other internal modes
     return cmds
 }
 
-func (t *ModeTarget) Stop() error {
+func (t *ClawTarget) Stop() error {
     return nil
 }
 
-func (t *ModeTarget) SendCommand(cmd string, args ...string) error {
-    // If we get here, the 'cmd' should have been validated
+func (t *ClawTarget) setMode(cmd string, args ...string) error {
+    newmode := args[0]
+
     if (t.modeactive != "") {
         return fmt.Errorf("aborted: attempting to recursively set mode '%s' while still setting mode '%s'", cmd, t.modeactive)
     }
-    t.modeactive = cmd
+    t.modeactive = newmode
     defer func() { t.modeactive = "" }()
 
-    clog.Debug("Setting mode to: '%s'", cmd)
-    str, err := t.targetmanager.modes.SetActive(cmd)
+    clog.Debug("Setting mode to: '%s'", newmode)
+    str, err := t.targetmanager.modes.SetActive(newmode)
     if err != nil {
         return err
     }
@@ -50,7 +56,7 @@ func (t *ModeTarget) SendCommand(cmd string, args ...string) error {
     for i := 0; i < len(str); i++ {
         err := t.targetmanager.RunCommand(str[i])
         if err != nil {
-            clog.Error("Command error while switching to mode '%s': %s", cmd, err.Error())
+            clog.Error("Command error while switching to mode '%s': %s", newmode, err.Error())
             // Return last error?
             ret = err
         }
@@ -59,12 +65,21 @@ func (t *ModeTarget) SendCommand(cmd string, args ...string) error {
     return ret
 }
 
-func createModeHandler(name string, params map[string]string) (Target, error) {
-    ret := &ModeTarget{targetmanager: nil, modeactive: ""}
+func (t *ClawTarget) SendCommand(cmd string, args ...string) error {
+    switch(cmd) {
+    case "mode":
+        return t.setMode(cmd, args...)
+    default:
+        return fmt.Errorf("clawtarget does not have a command %s", cmd)
+    }
+}
+
+func createClawTarget(name string, params map[string]string) (Target, error) {
+    ret := &ClawTarget{targetmanager: nil, modeactive: ""}
     return ret, nil
 }
 
-func (t *ModeTarget) setTargetManager(tm *TargetManager) {
+func (t *ClawTarget) setTargetManager(tm *TargetManager) {
     t.targetmanager = tm
 }
 
