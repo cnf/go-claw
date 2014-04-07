@@ -9,10 +9,10 @@ import "time"
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/modes"
 
-
 type TargetManager struct {
     targets map[string]Target
     target_cmds map[string]map[string]*Command
+    modes *modes.Modes
 }
 
 // Create and initialize a new TargetManager object
@@ -21,6 +21,10 @@ func NewTargetManager(m *modes.Modes) *TargetManager {
             targets    : make(map[string]Target),
             target_cmds: make(map[string]map[string]*Command),
         }
+    // Add and register the mode commands
+    ret.modes = m
+    ret.Add("mode", "mode", nil)
+
     return ret
 }
 
@@ -48,6 +52,11 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
         return err
     }
     t.targets[name] = tgt
+
+    // Special case - test if this is the modes target
+    if mt, ok := tgt.(*ModeTarget); ok {
+        mt.setTargetManager(t)
+    }
 
     // Fetch the command list
     tcmdlist := tgt.Commands()
