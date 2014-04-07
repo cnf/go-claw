@@ -65,9 +65,10 @@ func (d *Dispatcher) setupModes() {
 func (d *Dispatcher) setupTargets() {
     if d.targetmanager == nil {
         d.targetmanager = targets.NewTargetManager(d.modes)
+    } else {
+        // Stop and remove all targets if needed
+        d.targetmanager.Stop()
     }
-    // Stop and remove all targets if needed
-    d.targetmanager.Stop()
 
     for k, v := range d.config.Targets {
         clog.Info("Setting up target: %s", k)
