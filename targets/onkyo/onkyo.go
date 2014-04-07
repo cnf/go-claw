@@ -56,6 +56,20 @@ func Register() {
 }
 
 func (d *OnkyoReceiver) Stop() error {
+    switch d.Transport {
+    case TransportSerial:
+    case TransportTCP:
+        d.rxmu.Lock()
+        defer d.rxmu.Unlock()
+        if d.con != nil {
+            d.con.Close()
+            d.con = nil
+        }
+        if d.rxQchan != nil {
+            close(d.rxQchan)
+            d.rxQchan = nil
+        }
+    }
     return nil
 }
 
@@ -67,6 +81,9 @@ func (r *OnkyoReceiver) addRxCommand(msg string) (int64, error) {
     // Safeguard the sequence number
     r.rxmu.Lock()
     defer r.rxmu.Unlock()
+    if r.rxQchan == nil {
+        return -1, errors.New("onkyo disconnected?")
+    }
     push.seq = r.seqnr
     r.seqnr++
 
