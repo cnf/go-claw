@@ -8,7 +8,7 @@ import "github.com/cnf/go-claw/tools"
 import "github.com/cnf/go-claw/clog"
 
 const onkyoPort = 60128
-const onkyoMagic = "!xECNQSTN"
+const onkyoDetectMagic = "!xECNQSTN"
 
 // TargetDevice is the structure the autodetect code returns
 type TargetDevice struct {
@@ -23,7 +23,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     addrs := tools.BroadcastAddrs()
     port := strconv.Itoa(onkyoPort)
 
-    cmd := &OnkyoFrameTCP{onkyoMagic}
+    cmd := &OnkyoFrameTCP{onkyoDetectMagic}
     transmitStr := cmd.Bytes()
 
     udpaddr, err := net.ResolveUDPAddr("udp4", ":0")
