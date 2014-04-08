@@ -7,15 +7,9 @@ import "github.com/cnf/go-claw/targets"
 
 func (d *OnkyoReceiver) Commands() map[string]*targets.Command {
     cmds := map[string]*targets.Command {
-        "PowerOn"     : targets.NewCommand("Powers on the receiver"),
-        "PowerOff"    : targets.NewCommand("Powers off the receiver"),
-        "PowerToggle" : targets.NewCommand("Powers off the receiver"),
         "Power"       : targets.NewCommand("Powers off the receiver",
                 targets.NewParameter("powerstate", "The power state").SetList("on", "off", "toggle"),
                 ),
-        "MuteOn"      : targets.NewCommand("Mutes the sound"),
-        "MuteOff"     : targets.NewCommand("Unmutes the sound"),
-        "MuteToggle"  : targets.NewCommand("Toggles the muting of the sound"),
         "Mute"        : targets.NewCommand("Controls the Mute state",
                 targets.NewParameter("mutestate", "The mute state").SetList("on", "off", "toggle"),
                 ),
@@ -87,20 +81,8 @@ func (r *OnkyoReceiver) setInput(input string) error {
 func (r *OnkyoReceiver) onkyoCommand(cmd string, args []string) error {
     var err error
     switch cmd {
-    case "PowerOn":
-        _, err = r.Power("on")
-    case "PowerOff":
-        _, err = r.Power("off")
-    case "PowerToggle":
-        _, err = r.Power("toggle")
     case "Power":
         _, err = r.Power(args[0])
-    case "MuteOn":
-        _, err = r.Mute("on")
-    case "MuteOff":
-        _, err = r.Mute("off")
-    case "MuteToggle":
-        _, err = r.Mute("toggle")
     case "Mute":
         _, err = r.Mute(args[0])
     case "VolumeUp":
