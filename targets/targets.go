@@ -1,8 +1,10 @@
 package targets
 
-//import "fmt"
+import "strings"
+
 import "github.com/cnf/go-claw/clog"
 
+// Target is an interface which every Target must implement
 type Target interface {
     SendCommand(cmd string, args ...string) error
     Stop() error
@@ -14,10 +16,16 @@ func init() {
     RegisterTarget("claw", createClawTarget);
 }
 
+// CreateTarget is a function definition each target must provide during registration
 type CreateTarget func(name string, params map[string]string) (t Target, err error)
+
+
+// targetlist is the global internal list of all registered targets
 var targetlist = make(map[string]CreateTarget)
 
+// RegisterTarget is used by targets to register itself
 func RegisterTarget(name string, creator CreateTarget) {
+    name = strings.ToLower(name)
     clog.Info("Registering target: %s", name)
 
     if targetlist[name] != nil {

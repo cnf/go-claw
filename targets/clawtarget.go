@@ -6,13 +6,13 @@ import "strings"
 import "github.com/cnf/go-claw/clog"
 //import "github.com/cnf/go-claw/modes"
 
-type ClawTarget struct {
+type clawTarget struct {
     targetmanager *TargetManager
     modeactive string
 }
 
 // RegisterTarget("modes", createModes)
-func (t *ClawTarget) Commands() map[string]*Command {
+func (t *clawTarget) Commands() map[string]*Command {
     if t.targetmanager == nil {
         return nil
     }
@@ -22,7 +22,7 @@ func (t *ClawTarget) Commands() map[string]*Command {
     // Add the mode command
     modelist := make([]string, len(t.targetmanager.modes.ModeMap))
     i := 0
-    for m, _ := range t.targetmanager.modes.ModeMap {
+    for m := range t.targetmanager.modes.ModeMap {
         modelist[i] = m
         i++
     }
@@ -33,11 +33,11 @@ func (t *ClawTarget) Commands() map[string]*Command {
     return cmds
 }
 
-func (t *ClawTarget) Stop() error {
+func (t *clawTarget) Stop() error {
     return nil
 }
 
-func (t *ClawTarget) setMode(cmd string, args ...string) error {
+func (t *clawTarget) setMode(cmd string, args ...string) error {
     newmode := args[0]
 
     if (t.modeactive != "") {
@@ -65,7 +65,7 @@ func (t *ClawTarget) setMode(cmd string, args ...string) error {
     return ret
 }
 
-func (t *ClawTarget) SendCommand(cmd string, args ...string) error {
+func (t *clawTarget) SendCommand(cmd string, args ...string) error {
     switch(cmd) {
     case "mode":
         return t.setMode(cmd, args...)
@@ -75,11 +75,11 @@ func (t *ClawTarget) SendCommand(cmd string, args ...string) error {
 }
 
 func createClawTarget(name string, params map[string]string) (Target, error) {
-    ret := &ClawTarget{targetmanager: nil, modeactive: ""}
+    ret := &clawTarget{targetmanager: nil, modeactive: ""}
     return ret, nil
 }
 
-func (t *ClawTarget) setTargetManager(tm *TargetManager) {
+func (t *clawTarget) setTargetManager(tm *TargetManager) {
     t.targetmanager = tm
 }
 

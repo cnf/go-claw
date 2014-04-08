@@ -7,15 +7,37 @@ import "regexp"
 import "encoding/json"
 //import "fmt"
 
-// Type to validate a value with the given validation string
+// ParameterValidator is the function definition used to validate a value 
+// with the given validation string
 type ParameterValidator func(value, validation string) (string, error)
 
+// Command represents an target command
 type Command struct {
     Name string                   `json"-"`
     Description string            `json:"description"`
     Parameters []*CommandParameter `json:"parameters"`
 }
 
+// ParseJSONCommands parses a json structure into a map structure that the Commands() function is expected to return
+func ParseJSONCommands(jsonstr string) (map[string]*Command, error) {
+    var cmds struct {
+        Commands map[string]*Command `json:"commands"`
+    }
+
+    err := json.Unmarshal([]byte(jsonstr), &cmds)
+    if err != nil {
+        return nil, err
+    }
+    for v , c:= range cmds.Commands {
+        c.Name = v
+        cmds.Commands[v] = c
+    }
+    return cmds.Commands, nil
+}
+
+
+// CommandParameter represents a parameter that can be passed to a Command
+// and validated using a validation function
 type CommandParameter struct {
     Name string         `json:"name"`
     Description string  `json:"description"`
@@ -23,9 +45,10 @@ type CommandParameter struct {
     Validation string   `json:"validation"`
     Optional bool       `json:"optional"`
 
-    validation_fnc ParameterValidator
+    validationFnc ParameterValidator
 }
 
+// NewCommand creates a new Command structure
 func NewCommand(desc string, param... *CommandParameter) *Command {
     ret := new(Command)
     ret.Name = ""
@@ -34,6 +57,7 @@ func NewCommand(desc string, param... *CommandParameter) *Command {
     return ret
 }
 
+// NewParameter creates a new parameter structure
 func NewParameter(name, desc string) *CommandParameter {
     ret := new(CommandParameter)
     ret.Name = name
@@ -41,15 +65,17 @@ func NewParameter(name, desc string) *CommandParameter {
     ret.Optional = false
     ret.Type = "empty"
     ret.Validation = ""
-    ret.validation_fnc = nil
+    ret.validationFnc = nil
 
     return ret
 }
 
+// Validate performs a default validation based on the type of the command
+// parameter
 func (c *CommandParameter) Validate(value string) (string, error) {
     var valfnc ParameterValidator
 
-    if c.validation_fnc == nil {
+    if c.validationFnc == nil {
         switch c.Type {
             case "string":
                 valfnc = validateString
@@ -62,13 +88,13 @@ func (c *CommandParameter) Validate(value string) (string, error) {
             case "list":
                 valfnc = validateList
             case "custom":
-                return "", errors.New("CommandParameter:Validate(): internal error: Custom parameter defined but no function specified!")
+                return "", errors.New("internal error: CommandParameter:Validate(): Custom parameter defined but no function specified")
             default:
                 return value, nil
         }
     } else {
         // If a validation function is defined 
-        valfnc = c.validation_fnc
+        valfnc = c.validationFnc
     }
     if valfnc == nil {
         return "", errors.New("Invalid validator function given for parameter " + c.Name)
@@ -76,13 +102,16 @@ func (c *CommandParameter) Validate(value string) (string, error) {
     return valfnc(value, c.Validation)
 }
 
+// SetRange changes the type of the parameter to be a range with a start and end value
 func (c *CommandParameter) SetRange(start, end int) *CommandParameter {
     c.Type = "range"
     c.Validation = strconv.Itoa(start) + ":" + strconv.Itoa(end)
-    c.validation_fnc = validateRange
+    c.validationFnc = validateRange
     return c
 }
 
+// SetList changes the type of the parameter to be a list value.
+// The parameters passed are the possible values that the parameter can have
 func (c *CommandParameter) SetList(list... string) *CommandParameter {
     strlist := ""
     for _, s := range list {
@@ -93,37 +122,48 @@ func (c *CommandParameter) SetList(list... string) *CommandParameter {
     }
     c.Type = "list"
     c.Validation = strlist
-    c.validation_fnc = validateList
+    c.validationFnc = validateList
 
     return c
 }
 
+// SetString changes the type of the parameter to be a string.
+// Almost no validation is performed
 func (c *CommandParameter) SetString() *CommandParameter {
     c.Type = "string"
     c.Validation = ""
-    c.validation_fnc = validateString
+    c.validationFnc = validateString
 
     return c
 }
+
+// SetNumeric changes the type of the parameter to be numeric.
+// A numeric parameter can be passed in hex (0x##), octal (0#)
+// or decimal (##) notation
 func (c *CommandParameter) SetNumeric() *CommandParameter {
     c.Type = "numeric"
     c.Validation = ""
-    c.validation_fnc = validateNumeric
+    c.validationFnc = validateNumeric
 
     return c
 }
+
+// SetRegex changes the type of the parameter to be a string matching
+// a given regular expression.
 func (c *CommandParameter) SetRegex(regex string) *CommandParameter {
     c.Type = "regex"
     c.Validation = regex
-    c.validation_fnc = validateRegex
+    c.validationFnc = validateRegex
 
     return c
 }
 
+// SetCustom changes the type of the parameter to be custom with a custom
+// validation function.
 func (c *CommandParameter) SetCustom(validation string, fnc ParameterValidator) *CommandParameter {
     c.Type = "custom"
     c.Validation = validation
-    c.validation_fnc = fnc
+    c.validationFnc = fnc
 
     return c
 }
@@ -160,18 +200,18 @@ func validateNumeric(value, validation string) (string, error) {
     base := 0
 
     if validation != "" {
-        base_try, err := strconv.ParseInt(validation, 0, 0)
+        baseTry, err := strconv.ParseInt(validation, 0, 0)
         if err == nil {
             // Valid base specified
-            base = int(base_try)
+            base = int(baseTry)
         }
     }
-    val_try, err := strconv.ParseInt(value, base, 0)
+    valTry, err := strconv.ParseInt(value, base, 0)
     if err != nil {
         return "", errors.New("value '" + value + "' is an invalid number: " + err.Error())
     }
     // Return coverted to base 10
-    return strconv.Itoa(int(val_try)), nil
+    return strconv.Itoa(int(valTry)), nil
 }
 
 
@@ -216,13 +256,13 @@ func validateRange(value, validation string) (string, error) {
             return "", errors.New("value " + value + " too big for range " + validation)
         }
     } else if (ispct) {
-        return "", errors.New("Cannot use % notation for range when no upper bound is specified")
+        return "", errors.New("range validation error: cannot use % notation when no upper bound is specified")
     }
 
 
     if (ispct) {
         if (ival < 0) || (ival > 100) {
-            return "", errors.New("percentage value has to be in the range 0-100")
+            return "", errors.New("range validation error: percentage value has to be in the 0->100 range")
         }
         rnge := uval - lval
         return strconv.Itoa( int(float64(lval) + ((float64(rnge) / 100.0) * float64(ival)) ) ), nil
@@ -237,26 +277,7 @@ func validateList(value, validation string) (string, error) {
             return s, nil
         }
     }
-    return "", errors.New("Value '" + value + "' not in " + validation)
+    return "", errors.New("list validation failed: value '" + value + "' not in " + validation)
 }
 
-
-///////////
-type parseStruct struct {
-    Commands map[string]*Command `json:"commands"`
-}
-
-func ParseCommands(jsonstr string) (map[string]*Command, error) {
-    var cmds parseStruct 
-
-    err := json.Unmarshal([]byte(jsonstr), &cmds)
-    if err != nil {
-        return nil, err
-    }
-    for v , c:= range cmds.Commands {
-        c.Name = v
-        cmds.Commands[v] = c
-    }
-    return cmds.Commands, nil
-}
 

@@ -102,7 +102,7 @@ func runOnkyoDetect(ch chan *TargetDevice, timeout int) {
     }
 }
 
-// OnkyoAutoDetect is used to get a list of Onkyo receivers detected on the network
+// OnkyoFind is used to get a list of Onkyo receivers detected on the network
 func OnkyoFind(model, id string, timeout int) *TargetDevice {
     ch := make(chan *TargetDevice)
     go runOnkyoDetect(ch, timeout)
@@ -140,7 +140,7 @@ func OnkyoFind(model, id string, timeout int) *TargetDevice {
 func OnkyoAutoDetect(timeout int) []TargetDevice {
     ch := make(chan *TargetDevice)
     go runOnkyoDetect(ch, timeout)
-    ret := make([]TargetDevice, 0)
+    var ret []TargetDevice
     //timer := time.NewTimer(time.Millisecond * time.Duration(timeout + 200))
     for {
         select {

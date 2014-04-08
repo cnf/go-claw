@@ -9,25 +9,31 @@ import "time"
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/modes"
 
+// TargetManager is the structure which manages all targets
 type TargetManager struct {
     targets map[string]Target
-    target_cmds map[string]map[string]*Command
+    targetCmds map[string]map[string]*Command
     modes *modes.Modes
 }
 
-// Create and initialize a new TargetManager object
+// NewTargetManager creates and initialize a new TargetManager object
 func NewTargetManager(m *modes.Modes) *TargetManager {
-    ret := &TargetManager{ targets: nil, target_cmds: nil, modes: m }
+    ret := &TargetManager{ targets: nil, targetCmds: nil, modes: m }
     //clog.Debug("Adding internal mode target...")
     //ret.Add("mode", "mode", nil)
     ret.Stop()
     return ret
 }
 
-// Adds a new target using the specified module, given the specified name and parameters
+// Add adds a new target using the specified module, given the specified name and parameters
 func (t *TargetManager) Add(module, name string, params map[string]string) error {
     // Validate name
     var err error
+
+    // Everything lower case internally
+    module = strings.ToLower(module)
+    name  = strings.ToLower(name)
+
     if err := validateTargetName(name); err != nil {
         return err
     }
@@ -50,7 +56,7 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
     t.targets[name] = tgt
 
     // Special case - test if this is the modes target
-    if mt, ok := tgt.(*ClawTarget); ok {
+    if mt, ok := tgt.(*clawTarget); ok {
         mt.setTargetManager(t)
     }
 
@@ -59,18 +65,17 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
     if tcmdlist == nil {
         clog.Warn("warning: %s::%s returned an empty command list!", module, name)
     } else {
-        t.target_cmds[name] = tcmdlist
-        for r := range(t.target_cmds[name]) {
-            if t.target_cmds[name][r].Name == "" {
-                t.target_cmds[name][r].Name = r
-            }
+        t.targetCmds[name] = make(map[string]*Command, len(tcmdlist))
+        for r := range(tcmdlist) {
+            t.targetCmds[name][strings.ToLower(r)] = tcmdlist[r]
+            t.targetCmds[name][r].Name = strings.ToLower(r)
         }
     }
 
     return nil
 }
 
-// Remove a target instance from the list
+// Remove removes a target instance from the list
 func (t *TargetManager) Remove(name string) error {
     if _, ok := t.targets[name]; !ok {
         return errors.New("cannot remove " + name + ": does not exist")
@@ -79,13 +84,13 @@ func (t *TargetManager) Remove(name string) error {
         return err
     }
     delete(t.targets, name)
-    if _, ok := t.target_cmds[name]; ok {
-        delete(t.target_cmds, name)
+    if _, ok := t.targetCmds[name]; ok {
+        delete(t.targetCmds, name)
     }
     return nil
 }
 
-// Stops all target instances and removes them
+// Stop stops all target instances and removes them
 func (t *TargetManager) Stop() error {
     for k := range t.targets {
         if err := t.Remove(k); err != nil {
@@ -93,15 +98,15 @@ func (t *TargetManager) Stop() error {
         }
     }
     t.targets    = make(map[string]Target)
-    t.target_cmds = make(map[string]map[string]*Command)
+    t.targetCmds = make(map[string]map[string]*Command)
     clog.Debug("TargetManager::Stop(): Adding internal claw target...")
     t.Add("claw", "claw", nil)
 
     return nil
 }
 
-// Parses command, determines which target should run it, checks the provided parameters,
-// and if all is good - run the command.
+// RunCommand parses a given command, determines which target should run it,
+// checks the provided parameters, and if all is good - run the command.
 func (t *TargetManager) RunCommand(cmdstring string) error {
     splitstr := strings.SplitN(cmdstring, "::", 2)
     tstart := time.Now()
@@ -129,47 +134,47 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
     tparams := splitcmd[1:]
 
     // Check if the instance provided a commands list to check
-    if _, ok := t.target_cmds[tgtname]; ok && t.target_cmds[tgtname] != nil {
+    if _, ok := t.targetCmds[tgtname]; ok && t.targetCmds[tgtname] != nil {
         // Check if the command exists for this target
-        if _, ok := t.target_cmds[tgtname][tcommand]; !ok {
+        if _, ok := t.targetCmds[tgtname][tcommand]; !ok {
             //return fmt.Errorf("command '%s' not recognized by target '%s'", tcommand, tgtname)
             return NewCommandError(tgtname, true, tcommand, false, tparams)
         }
         // Validate all parameters
         pc := 0
-        tparams_n := make([]string, 0)
-        for prm := 0; prm < len(t.target_cmds[tgtname][tcommand].Parameters); prm++ {
+        var tparamsArr []string
+        for prm := 0; prm < len(t.targetCmds[tgtname][tcommand].Parameters); prm++ {
             if pc >= len(tparams) {
                 // Parameter not present, check if required
-                if !t.target_cmds[tgtname][tcommand].Parameters[prm].Optional {
+                if !t.targetCmds[tgtname][tcommand].Parameters[prm].Optional {
                     clog.Error("Non-optional parameter %s missing for command %s, target %s",
-                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            t.targetCmds[tgtname][tcommand].Parameters[prm].Name,
                             tcommand,
                             tgtname,
                         )
                     return fmt.Errorf("non-optional parameter '%s' missing for command '%s', target '%s'",
-                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            t.targetCmds[tgtname][tcommand].Parameters[prm].Name,
                             tcommand,
                             tgtname,
                         )
                 }
             } else {
-                pval, err := t.target_cmds[tgtname][tcommand].Parameters[prm].Validate(tparams[pc])
+                pval, err := t.targetCmds[tgtname][tcommand].Parameters[prm].Validate(tparams[pc])
                 if (err != nil) {
                     // validation returned an error
                     clog.Error("Parameter validation %s failed for command %s, target %s",
-                            t.target_cmds[tgtname][tcommand].Parameters[prm].Name,
+                            t.targetCmds[tgtname][tcommand].Parameters[prm].Name,
                             tcommand,
                             tgtname,
                         )
                     return err
                 }
-                tparams_n = append(tparams_n, pval)
+                tparamsArr = append(tparamsArr, pval)
             }
             pc++
         }
         // replace the original parameters with the validated parameters
-        tparams = tparams_n
+        tparams = tparamsArr
     }
     // Run the command
     //clog.Debug("--> Process cmd '%s' took: %s", cmdstring, time.Since(tstart).String())

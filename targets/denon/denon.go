@@ -51,9 +51,9 @@ func (d *Denon) Stop() error {
 
 func (d *Denon) SendCommand(cmd string, args ...string) error {
     switch cmd {
-    case "PowerOn":
+    case "poweron":
         return d.powerOn()
-    case "Mute":
+    case "mute":
         return d.toggleMute()
     default:
         cstr, err := d.getCommand(cmd, args...)

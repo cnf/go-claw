@@ -72,7 +72,7 @@ func Test_CommandList(t *testing.T) {
 }
 
 func Test_CommandParser(t *testing.T) {
-    cmds, err := ParseCommands(paramstr)
+    cmds, err := ParseJSONCommands(paramstr)
     if err != nil {
         t.Errorf("Got error: %s", err.Error())
     }

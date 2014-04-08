@@ -32,7 +32,7 @@ func (d *Linux) Stop() error {
 
 func (l *Linux) SendCommand(cmd string, args ...string) error {
     switch cmd {
-    case "PowerOn":
+    case "poweron":
         clog.Debug("Power on %s", l.name)
         return l.powerOn()
     }

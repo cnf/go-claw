@@ -2,22 +2,22 @@ package plex
 
 var pht = map[string]commander{
     // Navigation
-    "Home":             plainCommand{"/player/navigation/home"},
-    "Music":            plainCommand{"/player/navigation/music"},
-    "MoveUp":           plainCommand{"/player/navigation/moveUp"},
-    "MoveDown":         plainCommand{"/player/navigation/moveDown"},
-    "MoveLeft":         plainCommand{"/player/navigation/moveLeft"},
-    "MoveRight":        plainCommand{"/player/navigation/moveRight"},
-    "Select":           plainCommand{"/player/navigation/select"},
-    "Back":             plainCommand{"/player/navigation/back"},
+    "home":             plainCommand{"/player/navigation/home"},
+    "music":            plainCommand{"/player/navigation/music"},
+    "moveup":           plainCommand{"/player/navigation/moveUp"},
+    "movedown":         plainCommand{"/player/navigation/moveDown"},
+    "moveleft":         plainCommand{"/player/navigation/moveLeft"},
+    "moveright":        plainCommand{"/player/navigation/moveRight"},
+    "select":           plainCommand{"/player/navigation/select"},
+    "back":             plainCommand{"/player/navigation/back"},
     // Player
-    "Play":             plainCommand{"/player/playback/play"},
-    "Pause":            plainCommand{"/player/playback/pause"},
-    "Stop":             plainCommand{"/player/playback/stop"},
-    "SkipNext":         plainCommand{"/player/playback/skipNext"},
-    "SkipPrevious":     plainCommand{"/player/playback/skipPrevious"},
-    "StepForward":      plainCommand{"/player/playback/stepForward"},
-    "StepBack":         plainCommand{"/player/playback/stepBack"},
+    "play":             plainCommand{"/player/playback/play"},
+    "pause":            plainCommand{"/player/playback/pause"},
+    "stop":             plainCommand{"/player/playback/stop"},
+    "skipnext":         plainCommand{"/player/playback/skipNext"},
+    "skipprevious":     plainCommand{"/player/playback/skipPrevious"},
+    "stepforward":      plainCommand{"/player/playback/stepForward"},
+    "stepback":         plainCommand{"/player/playback/stepBack"},
 /*
 * `/player/playback/setParameters?volume=[0, 100]&shuffle=0/1&repeat=0/1/2`
 * `/player/playback/setStreams?audioStreamID=X&subtitleStreamID=Y&videoStreamID=Z`
@@ -26,8 +26,8 @@ var pht = map[string]commander{
 * `/player/playback/playMedia` now accepts key, offset, machineIdentifier,
 */
     // Legacy
-    "LNextLetter":       plainCommand{"/player/navigation/nextLetter"},
-    "LPrevLetter":       plainCommand{"/player/navigation/previousLetter"},
-    "LOSD":              plainCommand{"/player/navigation/toggleOSD"},
+    "lnextletter":       plainCommand{"/player/navigation/nextLetter"},
+    "lprevletter":       plainCommand{"/player/navigation/previousLetter"},
+    "losd":              plainCommand{"/player/navigation/toggleOSD"},
     //
 }

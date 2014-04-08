@@ -9,7 +9,7 @@ import "encoding/binary"
 //import "encoding/hex"
 //import "github.com/cnf/go-claw/clog"
 
-const OnkyoMagic = "ISCP"
+const onkyoMagic = "ISCP"
 
 // OnkyoFrame describes the main interface for an object to parse and
 // construct an Onkyo remote control message
@@ -34,10 +34,13 @@ type OnkyoFrameTCP struct {
 func (c *OnkyoFrameTCP) SetMessage(msg string) {
     c.Msg = msg
 }
+
+// NewOnkyoFrameTCP creates a new onkyo frame to be transmitted over TCP
 func NewOnkyoFrameTCP(msg string) *OnkyoFrameTCP {
     return &OnkyoFrameTCP{Msg: msg}
 }
 
+// ReadOnkyoFrameTCP reads a frame from an io.Reader instance
 func ReadOnkyoFrameTCP(r io.Reader) (*OnkyoFrameTCP, error) {
     ret := &OnkyoFrameTCP{}
     if err := ret.ReadFrom(r); err != nil {
@@ -140,18 +143,18 @@ func (c *OnkyoFrameTCP) parseData(buf []byte, datalen uint32) error {
     return nil
 }
 
-// Reads the frame from an io.Reader instance
+// ReadFrom reads the frame from an io.Reader instance
 func (c *OnkyoFrameTCP) ReadFrom(r io.Reader) error {
     br := bufio.NewReader(r)
     // Scan for the magic
 ScanLoop:
     for {
-        for i := 0; i < len(OnkyoMagic); i++ {
+        for i := 0; i < len(onkyoMagic); i++ {
             c, err := br.ReadByte()
             if err != nil {
                 return err
             }
-            if (c != OnkyoMagic[i]) {
+            if (c != onkyoMagic[i]) {
                 // Not the magic
                 continue ScanLoop
             }
@@ -160,14 +163,14 @@ ScanLoop:
         break
     }
     var frame [16]byte
-    for i := 0; i < len(OnkyoMagic); i++ {
-        frame[i] = OnkyoMagic[i]
+    for i := 0; i < len(onkyoMagic); i++ {
+        frame[i] = onkyoMagic[i]
     }
-    rlen, err := br.Read(frame[len(OnkyoMagic):])
+    rlen, err := br.Read(frame[len(onkyoMagic):])
     if err != nil {
         return err
     }
-    if (rlen + len(OnkyoMagic)) != 16 {
+    if (rlen + len(onkyoMagic)) != 16 {
         return errors.New("error reading onkyo frame header")
     }
     datalen, err := parseHeader(frame[0:])
@@ -208,6 +211,7 @@ func (c *OnkyoFrameTCP) Message() (string) {
 /////////////////////////////////////////////////////////////////////////////
 // TODO: Serial implementation of the messages
 
+// NewOnkyoFrameSerial creates a new onkyo frame to be sent over serial line
 func NewOnkyoFrameSerial(msg string) *OnkyoFrameSerial {
     return &OnkyoFrameSerial{Msg: msg}
 }

@@ -84,37 +84,37 @@ func (p *Plex) SendCommand(cmd string, args ...string) error {
     var val commander
     var ok bool
     switch cmd {
-    case "PowerOn":
+    case "poweron":
         return p.powerOn()
-    case "SmartUp":
+    case "smartup":
         if p.isNav() {
-            val, ok = p.commands["MoveUp"]
+            val, ok = p.commands["moveup"]
         } else {
-            val, ok = p.commands["SkipNext"]
+            val, ok = p.commands["skipnext"]
         }
-    case "SmartDown":
+    case "smartdown":
         if p.isNav() {
-            val, ok = p.commands["MoveDown"]
+            val, ok = p.commands["movedown"]
         } else {
-            val, ok = p.commands["SkipPrevious"]
+            val, ok = p.commands["skipprevious"]
         }
     case "SmartLeft":
         if p.isNav() {
-            val, ok = p.commands["MoveLeft"]
+            val, ok = p.commands["moveleft"]
         } else {
-            val, ok = p.commands["StepBack"]
+            val, ok = p.commands["stepback"]
         }
-    case "SmartRight":
+    case "smartright":
         if p.isNav() {
-            val, ok = p.commands["MoveRight"]
+            val, ok = p.commands["moveright"]
         } else {
-            val, ok = p.commands["StepForward"]
+            val, ok = p.commands["stepforward"]
         }
-    case "SmartSelect":
+    case "smartselect":
         if p.isNav() {
-            val, ok = p.commands["Select"]
+            val, ok = p.commands["select"]
         } else {
-            val, ok = p.commands["Play"]
+            val, ok = p.commands["play"]
         }
     default:
         val, ok = p.commands[cmd]

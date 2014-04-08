@@ -3,6 +3,7 @@ package targets
 import "strings"
 import "fmt"
 
+// CommandError is a structure representing an error when executing a command
 type CommandError struct {
     target string
     targetfound bool
@@ -11,6 +12,7 @@ type CommandError struct {
     params []string
 }
 
+// NewCommandError creates a new commanderror
 func NewCommandError(tgt string, tgtfound bool, cmd string, cmdfound bool, prms []string) *CommandError {
     if prms == nil {
         prms = make([]string, 0)
@@ -24,12 +26,18 @@ func NewCommandError(tgt string, tgtfound bool, cmd string, cmdfound bool, prms 
     }
     return ret
 }
+// Target returns the target of the command that failed
 func (c *CommandError) Target()       string   { return c.target }
+// TargetFound returns if the target of the command that failed existed or not
 func (c *CommandError) TargetFound()  bool     { return c.targetfound }
+// Command returns the command that failed
 func (c *CommandError) Command()      string   { return c.command }
+// CommandFound returns if the command that failed existed or not
 func (c *CommandError) CommandFound() bool     { return c.commandfound }
+// Params returns the parameters passed to the command that failed
 func (c *CommandError) Params()       []string { return c.params }
 
+// Error returns the error description string for the command that failed
 func (c CommandError) Error() string {
     if (!c.targetfound) {
         return fmt.Sprintf("could not execute '%s::%s \"%s\"': target not found",
