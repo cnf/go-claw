@@ -26,10 +26,10 @@ var AVRX2000 = map[string]Commander{
     // MS?
 
     // NAVIGATION
-    "moveUp":       PlainCommand{"MNCUP"},
-    "moveDown":     PlainCommand{"MNCDOWN"},
-    "moveLeft":     PlainCommand{"MNCLT"},
-    "moveRight":    PlainCommand{"MNCRT"},
+    "moveup":       PlainCommand{"MNCUP"},
+    "movedown":     PlainCommand{"MNCDOWN"},
+    "moveleft":     PlainCommand{"MNCLT"},
+    "moveright":    PlainCommand{"MNCRT"},
     "select":       PlainCommand{"MNENT"},
     "back":         PlainCommand{"MNRTN"},
     "option":       PlainCommand{"MNOPT"},
