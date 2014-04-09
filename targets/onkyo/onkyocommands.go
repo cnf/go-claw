@@ -28,7 +28,7 @@ func (o *OnkyoReceiver) Commands() map[string]*targets.Command {
     }
     if (true) {
         // Fix the volume range for specific models
-        cmds["Volume"].Parameters[0].SetRange(0,77)
+        cmds["volume"].Parameters[0].SetRange(0,77)
     }
     return cmds
 }

@@ -130,7 +130,7 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
         //return fmt.Errorf("empty target command in '%s'", cmdstring)
         return NewCommandError(tgtname, true, splitstr[1], false, nil)
     }
-    tcommand := splitcmd[0]
+    tcommand := strings.ToLower(splitcmd[0])
     tparams := splitcmd[1:]
 
     // Check if the instance provided a commands list to check
