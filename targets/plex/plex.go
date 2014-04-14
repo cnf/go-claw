@@ -98,7 +98,7 @@ func (p *Plex) SendCommand(cmd string, args ...string) error {
         } else {
             val, ok = p.commands["skipprevious"]
         }
-    case "SmartLeft":
+    case "smartleft":
         if p.isNav() {
             val, ok = p.commands["moveleft"]
         } else {
