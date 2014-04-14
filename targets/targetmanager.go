@@ -117,7 +117,7 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
     if err := validateTargetName(splitstr[0]); err != nil {
         return err
     }
-    tgtname := splitstr[0]
+    tgtname := strings.ToLower(splitstr[0])
 
     if _, ok := t.targets[tgtname]; !ok {
         //return fmt.Errorf("command '%s' uses a target '%s' that does not exist", cmdstring, tgtname)
