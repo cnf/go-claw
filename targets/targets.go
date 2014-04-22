@@ -6,7 +6,7 @@ import "github.com/cnf/go-claw/clog"
 
 // Target is an interface which every Target must implement
 type Target interface {
-    SendCommand(cmd string, args ...string) error
+    SendCommand(repeated int, cmd string, args ...string) error
     Stop() error
     Commands() map[string]*Command
 }

@@ -49,7 +49,7 @@ func (d *Denon) Stop() error {
     return nil
 }
 
-func (d *Denon) SendCommand(cmd string, args ...string) error {
+func (d *Denon) SendCommand(repeated int, cmd string, args ...string) error {
     switch cmd {
     case "poweron":
         return d.powerOn()

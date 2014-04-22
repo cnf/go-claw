@@ -30,7 +30,7 @@ func (d *Linux) Stop() error {
     return nil
 }
 
-func (l *Linux) SendCommand(cmd string, args ...string) error {
+func (l *Linux) SendCommand(repeated int, cmd string, args ...string) error {
     switch cmd {
     case "poweron":
         clog.Debug("Power on %s", l.name)

@@ -54,7 +54,7 @@ func (t *clawTarget) setMode(cmd string, args ...string) error {
     var ret error
     ret = nil
     for i := 0; i < len(str); i++ {
-        err := t.targetmanager.RunCommand(str[i])
+        err := t.targetmanager.RunCommand(0, str[i])
         if err != nil {
             clog.Error("Command error while switching to mode '%s': %s", newmode, err.Error())
             // Return last error?
@@ -65,7 +65,7 @@ func (t *clawTarget) setMode(cmd string, args ...string) error {
     return ret
 }
 
-func (t *clawTarget) SendCommand(cmd string, args ...string) error {
+func (t *clawTarget) SendCommand(repeated int, cmd string, args ...string) error {
     switch(cmd) {
     case "mode":
         return t.setMode(cmd, args...)

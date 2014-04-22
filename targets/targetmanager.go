@@ -107,7 +107,7 @@ func (t *TargetManager) Stop() error {
 
 // RunCommand parses a given command, determines which target should run it,
 // checks the provided parameters, and if all is good - run the command.
-func (t *TargetManager) RunCommand(cmdstring string) error {
+func (t *TargetManager) RunCommand(repeated int, cmdstring string) error {
     splitstr := strings.SplitN(cmdstring, "::", 2)
     tstart := time.Now()
     if len(splitstr) != 2 {
@@ -179,7 +179,7 @@ func (t *TargetManager) RunCommand(cmdstring string) error {
     // Run the command
     //clog.Debug("--> Process cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
     //tstart = time.Now()
-    err := t.targets[tgtname].SendCommand(tcommand, tparams...)
+    err := t.targets[tgtname].SendCommand(repeated, tcommand, tparams...)
     clog.Debug("--> Execute cmd '%s' took: %s", cmdstring, time.Since(tstart).String())
     return err
 }

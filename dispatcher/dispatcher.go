@@ -93,7 +93,7 @@ func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {
         return false
     }
     for _, v := range actions {
-        err := d.targetmanager.RunCommand(v)
+        err := d.targetmanager.RunCommand(rc.Repeat, v)
         if err != nil {
             rok = false
             clog.Debug("dispatch:RunCommand: %s", err)

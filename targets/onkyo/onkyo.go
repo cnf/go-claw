@@ -399,7 +399,7 @@ func createOnkyoReceiver(name string, params map[string]string) (targets.Target,
 }
 
 // SendCommand sends a command to the receiver
-func (o *OnkyoReceiver) SendCommand(cmd string, args ...string) error {
+func (o *OnkyoReceiver) SendCommand(repeated int, cmd string, args ...string) error {
     return o.onkyoCommand(cmd, args)
 }
 

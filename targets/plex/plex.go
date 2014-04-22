@@ -78,7 +78,7 @@ func (d *Plex) Stop() error {
 
 
 // SendCommand receives the command from the dispatcher
-func (p *Plex) SendCommand(cmd string, args ...string) error {
+func (p *Plex) SendCommand(repeated int, cmd string, args ...string) error {
     var path string
     var err error
     var val commander
