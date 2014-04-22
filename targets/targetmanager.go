@@ -3,11 +3,11 @@ package targets
 import "fmt"
 import "errors"
 import "strings"
-import "unicode"
 import "time"
 
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/modes"
+import "github.com/cnf/go-claw/core"
 
 // TargetManager is the structure which manages all targets
 type TargetManager struct {
@@ -34,7 +34,7 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
     module = strings.ToLower(module)
     name  = strings.ToLower(name)
 
-    if err := validateTargetName(name); err != nil {
+    if err := core.ValidateName(name); err != nil {
         return err
     }
     // check if target already exists
@@ -114,7 +114,7 @@ func (t *TargetManager) RunCommand(repeated int, cmdstring string) error {
         return fmt.Errorf("invalid command string '%s', expected it to contain '::'", cmdstring)
     }
     // Validate the name of the target we just parsed out
-    if err := validateTargetName(splitstr[0]); err != nil {
+    if err := core.ValidateName(splitstr[0]); err != nil {
         return err
     }
     tgtname := strings.ToLower(splitstr[0])
@@ -125,7 +125,7 @@ func (t *TargetManager) RunCommand(repeated int, cmdstring string) error {
     }
 
     // Split the command
-    splitcmd := splitQuoted(splitstr[1])
+    splitcmd := core.SplitQuoted(splitstr[1])
     if len(splitcmd)  == 0 {
         //return fmt.Errorf("empty target command in '%s'", cmdstring)
         return NewCommandError(tgtname, true, splitstr[1], false, nil)
@@ -184,104 +184,4 @@ func (t *TargetManager) RunCommand(repeated int, cmdstring string) error {
     return err
 }
 
-// Split a string containing quoted strings on newlines, quotes, ... 
-// Supports escaping of space, newline, ...
-func splitQuoted(s string) []string {
-    var ret []string
-    var curr = make([]rune, len(s))
-    var cpos = 0
-    var quoted = ' '
-    var escaped = false
-    sr := strings.NewReader(s)
-
-    for {
-        r, _, err := sr.ReadRune()
-        if err != nil {
-            // Append last
-            if cpos != 0 {
-                ret = append(ret, string(curr[0:cpos]))
-                cpos = 0
-            }
-            break
-        }
-        switch r {
-        case ' ':
-            if quoted != ' ' {
-                if escaped {
-                    curr[cpos] = '\\'
-                    cpos++
-                    escaped = false
-                }
-                curr[cpos] = ' '
-                cpos++
-            } else if escaped {
-                curr[cpos] = ' '
-                cpos++
-                escaped = false
-            } else if cpos != 0 {
-                ret = append(ret, string(curr[0:cpos]))
-                cpos = 0
-            }
-        case '"', '\'':
-            if escaped {
-                curr[cpos] = r
-                cpos++
-                escaped = false
-            } else if quoted == r {
-                // Quoted string closed
-                // Don't add to list yet, whitespace should follow if 
-                // it's a new string/parameter, otherwise treat it as
-                // the same
-                //ret = append(ret, string(curr[0:cpos]))
-                //cpos = 0
-                quoted = ' '
-            } else if quoted == ' ' {
-                // New quote, start new entry
-                quoted = r
-            } else {
-                curr[cpos] = r
-                cpos++
-            }
-        case '\\':
-            if escaped {
-                curr[cpos] = '\\'
-                cpos++
-                escaped = false
-            } else {
-                escaped = true
-            }
-        default:
-            if unicode.IsSpace(r) {
-                // the other white space - cannot escape this!
-                if quoted != ' ' {
-                    curr[cpos] = r
-                    cpos++
-                } else if cpos != 0 {
-                    // Add to lst
-                    ret = append(ret, string(curr[0:cpos]))
-                    cpos = 0
-                }
-            } else {
-                if escaped {
-                    curr[cpos] = '\\'
-                    cpos++
-                    escaped = false
-                }
-                curr[cpos] = r
-                cpos++
-            }
-        }
-    }
-    return ret
-}
-
-func validateTargetName(name string) error {
-    if name == "" {
-        return errors.New("a target name cannot be empty")
-    }
-    if strings.ContainsAny(name, "\t\n\r :@!+=*") {
-        return fmt.Errorf("target name '%s' cannot contain whitespace, ':', '@', '!', '+', '=' or '*' characters")
-    }
-    return nil
-}
 
