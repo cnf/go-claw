@@ -1,15 +1,17 @@
 package core
 
-import "errors"
 import "fmt"
-import "strings"
+import "regexp"
+
+
+var regexptr *regexp.Regexp
 
 func ValidateName(name string) error {
-    if name == "" {
-        return errors.New("a target name cannot be empty")
+    if (regexptr == nil) {
+        regexptr = regexp.MustCompile(`^[a-zA-Z0-9_\-]+$`)
     }
-    if strings.ContainsAny(name, "\t\n\r :@!+=*") {
-        return fmt.Errorf("target name '%s' cannot contain whitespace, ':', '@', '!', '+', '=' or '*' characters")
+    if (!regexptr.MatchString(name)) {
+        return fmt.Errorf("name '%s' can only contain A-Z, a-z, 0-9, '_' and '-' characters!", name)
     }
     return nil
 }
