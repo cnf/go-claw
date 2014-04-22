@@ -20,7 +20,6 @@ type Plex struct {
     wol string
     cname string
     proto string
-    commands map[string]commander
     capabilities []string
     uuid string
     listenport int
@@ -61,7 +60,6 @@ func Create(name string, params map[string]string) (targets.Target, error) {
         p.wol = val
     }
     go p.plexWatcher()
-    p.commands = pht
     // FIXME: generate an actual ID
     p.uuid = "1A5C18A3-C398-4A50-A6CE-FCFDDD7FC1F2"
     p.commandID = 1
@@ -69,63 +67,24 @@ func Create(name string, params map[string]string) (targets.Target, error) {
     return p, nil
 }
 
-func (d *Plex) Commands() map[string]*targets.Command {
+// Stop the plex controller
+func (p *Plex) Stop() error {
     return nil
 }
-func (d *Plex) Stop() error {
-    return nil
-}
-
 
 // SendCommand receives the command from the dispatcher
 func (p *Plex) SendCommand(repeated int, cmd string, args ...string) error {
-    var path string
-    var err error
-    var val commander
-    var ok bool
     switch cmd {
-    case "poweron":
-        return p.powerOn()
-    case "smartup":
-        if p.isNav() {
-            val, ok = p.commands["moveup"]
-        } else {
-            val, ok = p.commands["skipnext"]
-        }
-    case "smartdown":
-        if p.isNav() {
-            val, ok = p.commands["movedown"]
-        } else {
-            val, ok = p.commands["skipprevious"]
-        }
-    case "smartleft":
-        if p.isNav() {
-            val, ok = p.commands["moveleft"]
-        } else {
-            val, ok = p.commands["stepback"]
-        }
-    case "smartright":
-        if p.isNav() {
-            val, ok = p.commands["moveright"]
-        } else {
-            val, ok = p.commands["stepforward"]
-        }
-    case "smartselect":
-        if p.isNav() {
-            val, ok = p.commands["select"]
-        } else {
-            val, ok = p.commands["play"]
-        }
+    case "nav":
+        return p.navigation(args[0])
+    case "playback":
+        return p.playback(args[0])
+    case "power":
+        return p.power(args[0])
     default:
-        val, ok = p.commands[cmd]
+        return fmt.Errorf("could not send `%s` to `%s`", cmd, p.name)
     }
-    if !ok {
-        err = fmt.Errorf("could not send `%s` to `%s`", cmd, p.name)
-        return err
-    }
-    path, err = val.command(args...)
-    if err != nil { return err }
-    return p.plexGet(path)
+    return nil
 }
 
 func (p *Plex) plexWatcher() {
@@ -242,12 +201,19 @@ func (p *Plex) isNav() bool {
     return true
 }
 
-func (p *Plex) powerOn() error {
-    if p.wol != "" {
+func (p *Plex) power(state string) error {
+    switch state {
+    case "on":
+        if p.wol == "" {
+            return fmt.Errorf("do not know how to power %s %s", state, p.name)
+        }
         ok := tools.Wol(p.wol)
         if !ok { return fmt.Errorf("can not power on %s", p.name) }
+        return nil
+    default:
+        return fmt.Errorf("do not know how to power %s %s", state, p.name)
     }
-    return fmt.Errorf("do not know how to power on %s", p.name)
+    return nil
 }
 
 func dialTimeout(network, addr string) (net.Conn, error) {
