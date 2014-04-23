@@ -37,7 +37,7 @@ func main() {
     registerAllTargets()
 
     dispatch := dispatcher.Dispatcher{}
-    dispatch.Setup()
+    dispatch.Setup(cfgfile)
 
     dispatch.Start()
 }

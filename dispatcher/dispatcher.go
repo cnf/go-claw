@@ -9,7 +9,7 @@ import "github.com/cnf/go-claw/clog"
 
 // Dispatcher holds all the dispatcher info
 type Dispatcher struct {
-    Configfile string
+    configfile string
     config Config
     keytimeout time.Duration
     listenermap map[string]*listeners.Listener
@@ -20,7 +20,8 @@ type Dispatcher struct {
 }
 
 
-func (d *Dispatcher) Setup() error {
+func (d *Dispatcher) Setup(configfile string) error {
+    d.configfile = configfile
     d.activemode = "default"
     d.keytimeout = time.Duration(120 * time.Millisecond)
     d.readConfig()
