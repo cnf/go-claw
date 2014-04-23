@@ -45,6 +45,9 @@ func setup(name string, host string, port int) *Denon {
 func (d *Denon) Commands() map[string]*targets.Command {
     return nil
 }
+func (d *Denon) Start() error {
+    return nil
+}
 func (d *Denon) Stop() error {
     return nil
 }

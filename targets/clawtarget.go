@@ -33,6 +33,12 @@ func (t *clawTarget) Commands() map[string]*Command {
     return cmds
 }
 
+// Starts the clawtarget target instance
+func (t *clawTarget) Start() error {
+    return nil
+}
+
+// Stops the clawtarget target instance
 func (t *clawTarget) Stop() error {
     return nil
 }

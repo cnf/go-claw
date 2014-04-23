@@ -37,7 +37,7 @@ func main() {
     registerAllTargets()
 
     dispatch := dispatcher.Dispatcher{}
-    dispatch.Configfile = cfgfile
+    dispatch.Setup()
 
     dispatch.Start()
 }
@@ -64,3 +64,4 @@ func setup() {
     flag.Parse()
     cfgfile, _ = filepath.Abs(cfgfile)
 }
+

@@ -26,7 +26,12 @@ func Create(name string, params map[string]string) (targets.Target, error) {
 func (d *Linux) Commands() map[string]*targets.Command {
     return nil
 }
+
 func (d *Linux) Stop() error {
+    return nil
+}
+
+func (d *Linux) Start() error {
     return nil
 }
 

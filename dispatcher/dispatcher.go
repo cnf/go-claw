@@ -19,14 +19,23 @@ type Dispatcher struct {
     cs *listeners.CommandStream
 }
 
-func (d *Dispatcher) Start() {
-    defer d.cs.Close()
+
+func (d *Dispatcher) Setup() error {
     d.activemode = "default"
     d.keytimeout = time.Duration(120 * time.Millisecond)
     d.readConfig()
     d.setupListeners()
     d.setupModes()
     d.setupTargets()
+
+    return nil
+}
+
+func (d *Dispatcher) Start() {
+    defer d.cs.Close()
+
+    d.startListeners()
+    d.startTargets()
 
     var out listeners.RemoteCommand
 
@@ -39,7 +48,15 @@ func (d *Dispatcher) Start() {
     }
 }
 
-func (d *Dispatcher) setupListeners() {
+func (d *Dispatcher) startTargets() error {
+    return d.targetmanager.Start()
+}
+
+func (d *Dispatcher) startListeners() error {
+    return nil
+}
+
+func (d *Dispatcher) setupListeners() error {
     d.listenermap = make(map[string]*listeners.Listener)
     d.cs = listeners.NewCommandStream()
 
@@ -51,18 +68,19 @@ func (d *Dispatcher) setupListeners() {
             d.cs.AddListener(l)
         }
     }
-
+    return nil
 }
 
-func (d *Dispatcher) setupModes() {
+func (d *Dispatcher) setupModes() error {
     d.modes = &modes.Modes{}
     err := d.modes.Setup(d.config.Modes)
     if err != nil {
         clog.Error("Dispatcher: could not set up modes: %s", err)
     }
+    return nil
 }
 
-func (d *Dispatcher) setupTargets() {
+func (d *Dispatcher) setupTargets() error {
     if d.targetmanager == nil {
         d.targetmanager = targets.NewTargetManager(d.modes)
     } else {
@@ -76,6 +94,7 @@ func (d *Dispatcher) setupTargets() {
             clog.Warn("Could not add target '%s:%s': %s", v.Module, k, err.Error())
         }
     }
+    return nil
 }
 
 func (d *Dispatcher) dispatch(rc *listeners.RemoteCommand) bool {

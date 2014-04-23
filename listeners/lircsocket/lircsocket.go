@@ -32,6 +32,12 @@ func Create(params map[string]string) (l listeners.Listener, ok bool) {
     return sl, true
 }
 
+// Stop the LIRC listener instance
+func (l *LircSocketListener) Stop() error {
+    return nil
+}
+
+
 func (l *LircSocketListener) setup(cs *listeners.CommandStream) bool {
     clog.Debug("Opening socket: %s", l.Path)
     c, err := net.Dial("unix", l.Path)

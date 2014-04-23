@@ -4,6 +4,8 @@ import "fmt"
 import "errors"
 import "strings"
 import "time"
+import "io"
+import "bufio"
 
 import "github.com/cnf/go-claw/clog"
 import "github.com/cnf/go-claw/modes"
@@ -75,6 +77,23 @@ func (t *TargetManager) Add(module, name string, params map[string]string) error
     return nil
 }
 
+func (t *TargetManager) PrintCommands(w io.Writer, json bool) {
+    wt := bufio.NewWriter(w)
+    if json { wt.WriteString("{\n") }
+    for tgt := range(t.targetCmds) {
+        if !json { fmt.Fprintf(wt, "## target: %s\n") }
+        for cmd := range(t.targetCmds[tgt]) {
+            if json {
+                fmt.Fprintf(wt, `"%s::%s": "%s"\n`, tgt, cmd)
+            } else {
+                fmt.Fprintf(wt, `%s::%s %s\n`, tgt, cmd)
+            }
+        }
+    }
+    if json { wt.WriteString("}\n") }
+    wt.Flush()
+}
+
 // Remove removes a target instance from the list
 func (t *TargetManager) Remove(name string) error {
     if _, ok := t.targets[name]; !ok {
@@ -86,6 +105,17 @@ func (t *TargetManager) Remove(name string) error {
     delete(t.targets, name)
     if _, ok := t.targetCmds[name]; ok {
         delete(t.targetCmds, name)
+    }
+    return nil
+}
+
+// Starts all target's background processes if needed
+func (t *TargetManager) Start() error {
+    for tgt := range(t.targets) {
+        err := t.targets[tgt].Start()
+        if err != nil {
+            return err
+        }
     }
     return nil
 }

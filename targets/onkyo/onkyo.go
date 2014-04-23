@@ -55,6 +55,11 @@ func Register() {
     //targets.RegisterAutoDetect(OnkyoAutoDetect)
 }
 
+// Starts the Onkyo target instance
+func (o *OnkyoReceiver) Start() error {
+    return nil
+}
+
 // Stop stops the current onkyo target instance
 func (o *OnkyoReceiver) Stop() error {
     switch o.Transport {

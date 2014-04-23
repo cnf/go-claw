@@ -4,6 +4,7 @@ import "github.com/cnf/go-claw/clog"
 
 type Listener interface {
     RunListener(cs *CommandStream)
+    Stop() error
 }
 
 type CreateListener func(params map[string]string) (l Listener, ok bool)

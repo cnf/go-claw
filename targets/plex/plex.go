@@ -67,6 +67,11 @@ func Create(name string, params map[string]string) (targets.Target, error) {
     return p, nil
 }
 
+// Start the plex controller
+func (p *Plex) Start() error {
+    return nil
+}
+
 // Stop the plex controller
 func (p *Plex) Stop() error {
     return nil
