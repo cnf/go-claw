@@ -182,7 +182,7 @@ var buttons = {
     "OK (Enter)"       : { command: "KEY_OK"           , keycode: [ 13 ] },
     "Back (backspace)" : { command: "KEY_BACK"         , keycode: [  8 ] },
     "Power toggle (p)" : { command: "KEY_POWER"        , keycode: [ 80 ] },
-    "Exit (Esc)"       : { command: "KEY_EXIT"         , keycode: [ 27 ] },
+    "Exit (Esc)"       : { command: "KEY_BACK"         , keycode: [ 27 ] },
     "Play (space)"     : { command: "KEY_PLAY"         , keycode: [ 32 ] },
     "Volume Up (+)"    : { command: "KEY_VOLUMEUP"     , keycode: [ 107, 187, 33 ] },
     "Volume Down (-)"  : { command: "KEY_VOLUMEDOWN"   , keycode: [ 109, 189, 34 ] },
