@@ -2,6 +2,7 @@ package dispatcher
 
 import "time"
 
+import "github.com/cnf/go-claw/config"
 import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/modes"
 import "github.com/cnf/go-claw/targets"
@@ -9,25 +10,26 @@ import "github.com/cnf/go-claw/clog"
 
 // Dispatcher holds all the dispatcher info
 type Dispatcher struct {
-    configfile string
-    config Config
+    // configfile string
+    // config *config.Config
     keytimeout time.Duration
     listenermap map[string]*listeners.Listener
     targetmanager *targets.TargetManager
     modes *modes.Modes
-    activemode string
+    // activemode string
     cs *listeners.CommandStream
 }
 
-
-func (d *Dispatcher) Setup(configfile string) error {
-    d.configfile = configfile
-    d.activemode = "default"
+// Setup sets up the dispatcher
+func (d *Dispatcher) Setup(cfg *config.Config) error {
+    // d.configfile = configfile
+    // d.activemode = "default"
     d.keytimeout = time.Duration(120 * time.Millisecond)
-    d.readConfig()
-    d.setupListeners()
-    d.setupModes()
-    d.setupTargets()
+    // d.readConfig()
+    // d.config = cfg
+    d.setupListeners(cfg.Listeners)
+    d.setupModes(cfg.Modes)
+    d.setupTargets(cfg.Targets)
 
     return nil
 }
@@ -57,11 +59,11 @@ func (d *Dispatcher) startListeners() error {
     return nil
 }
 
-func (d *Dispatcher) setupListeners() error {
+func (d *Dispatcher) setupListeners(cfg map[string]*config.ConfigListener) error {
     d.listenermap = make(map[string]*listeners.Listener)
     d.cs = listeners.NewCommandStream()
 
-    for k, v := range d.config.Listeners {
+    for k, v := range cfg {
         l, ok := listeners.GetListener(v.Module, v.Params)
         if ok {
             clog.Info("Setting up listener: %s", k)
@@ -72,16 +74,16 @@ func (d *Dispatcher) setupListeners() error {
     return nil
 }
 
-func (d *Dispatcher) setupModes() error {
+func (d *Dispatcher) setupModes(cfg map[string]*modes.Mode) error {
     d.modes = &modes.Modes{}
-    err := d.modes.Setup(d.config.Modes)
+    err := d.modes.Setup(cfg)
     if err != nil {
         clog.Error("Dispatcher: could not set up modes: %s", err)
     }
     return nil
 }
 
-func (d *Dispatcher) setupTargets() error {
+func (d *Dispatcher) setupTargets(cfg map[string]*config.ConfigTarget) error {
     if d.targetmanager == nil {
         d.targetmanager = targets.NewTargetManager(d.modes)
     } else {
@@ -89,7 +91,7 @@ func (d *Dispatcher) setupTargets() error {
         d.targetmanager.Stop()
     }
 
-    for k, v := range d.config.Targets {
+    for k, v := range cfg {
         clog.Info("Setting up target: %s", k)
         if err := d.targetmanager.Add(v.Module, k, v.Params); err != nil {
             clog.Warn("Could not add target '%s:%s': %s", v.Module, k, err.Error())

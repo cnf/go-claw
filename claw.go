@@ -2,16 +2,17 @@ package main
 
 import "os"
 import "os/signal"
-import "os/user"
-import "path/filepath"
-import "runtime"
-import "flag"
+// import "os/user"
+// import "path/filepath"
+// import "runtime"
+// import "flag"
 
+import "github.com/cnf/go-claw/config"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/clog"
 
-var cfgfile string
-var verbose bool
+// var cfgfile string
+// var verbose bool
 
 func main() {
     defer clog.Stop()
@@ -24,9 +25,12 @@ func main() {
         os.Exit(1)
     }()
 
-    setup()
+    cfg := &config.Config{}
+    setup(cfg)
+    cfg.ReadConfig()
+
     clog.SetFlags(clog.Lshortlevel | clog.Ltimebetween | clog.Ltime)
-    if verbose {
+    if cfg.Verbose() {
         clog.SetLogLevel(clog.DEBUG)
     } else {
         clog.SetLogLevel(clog.WARN)
@@ -37,31 +41,7 @@ func main() {
     registerAllTargets()
 
     dispatch := dispatcher.Dispatcher{}
-    dispatch.Setup(cfgfile)
+    dispatch.Setup(cfg)
 
     dispatch.Start()
 }
-
-func setup() {
-    var home string
-    usr, uerr := user.Current()
-    if uerr != nil {
-        clog.Warn( uerr.Error() )
-        home = os.ExpandEnv("$HOME")
-    } else {
-        home = usr.HomeDir
-    }
-
-    if runtime.GOOS == "windows" {
-        // cfg.Home, _ = filepath.Abs(usr.HomeDir)
-        // TODO: Different defaults for windows
-    } else {
-        // cfg.Home, _ = filepath.Abs(usr.HomeDir)
-        cfgfile = filepath.Join(home, ".config/claw/config.json")
-    }
-    flag.StringVar(&cfgfile, "conf", cfgfile, "path to our config file.")
-    flag.BoolVar(&verbose, "v", verbose, "turn on verbose logging")
-    flag.Parse()
-    cfgfile, _ = filepath.Abs(cfgfile)
-}
-
