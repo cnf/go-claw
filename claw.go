@@ -2,17 +2,10 @@ package main
 
 import "os"
 import "os/signal"
-// import "os/user"
-// import "path/filepath"
-// import "runtime"
-// import "flag"
 
 import "github.com/cnf/go-claw/config"
 import "github.com/cnf/go-claw/dispatcher"
 import "github.com/cnf/go-claw/clog"
-
-// var cfgfile string
-// var verbose bool
 
 func main() {
     defer clog.Stop()
