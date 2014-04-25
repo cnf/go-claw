@@ -19,7 +19,7 @@ func main() {
     }()
 
     cfg := &config.Config{}
-    setup(cfg)
+    cfg.Setup()
     cfg.ReadConfig()
 
     clog.SetFlags(clog.Lshortlevel | clog.Ltimebetween | clog.Ltime)
