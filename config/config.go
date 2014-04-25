@@ -1,8 +1,6 @@
 package config
 
-// import "github.com/cnf/go-claw/listeners"
 import "github.com/cnf/go-claw/modes"
-// import "github.com/cnf/go-claw/targets"
 
 // Config is the main configuration object
 type Config struct {
