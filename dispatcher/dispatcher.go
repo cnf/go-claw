@@ -10,23 +10,16 @@ import "github.com/cnf/go-claw/clog"
 
 // Dispatcher holds all the dispatcher info
 type Dispatcher struct {
-    // configfile string
-    // config *config.Config
     keytimeout time.Duration
     listenermap map[string]*listeners.Listener
     targetmanager *targets.TargetManager
     modes *modes.Modes
-    // activemode string
     cs *listeners.CommandStream
 }
 
 // Setup sets up the dispatcher
 func (d *Dispatcher) Setup(cfg *config.Config) error {
-    // d.configfile = configfile
-    // d.activemode = "default"
     d.keytimeout = time.Duration(120 * time.Millisecond)
-    // d.readConfig()
-    // d.config = cfg
     d.setupListeners(cfg.Listeners)
     d.setupModes(cfg.Modes)
     d.setupTargets(cfg.Targets)
@@ -34,6 +27,7 @@ func (d *Dispatcher) Setup(cfg *config.Config) error {
     return nil
 }
 
+// Start starts the dispatcher
 func (d *Dispatcher) Start() {
     defer d.cs.Close()
 
@@ -59,7 +53,7 @@ func (d *Dispatcher) startListeners() error {
     return nil
 }
 
-func (d *Dispatcher) setupListeners(cfg map[string]*config.ConfigListener) error {
+func (d *Dispatcher) setupListeners(cfg map[string]*config.ListenerConfig) error {
     d.listenermap = make(map[string]*listeners.Listener)
     d.cs = listeners.NewCommandStream()
 
@@ -83,7 +77,7 @@ func (d *Dispatcher) setupModes(cfg map[string]*modes.Mode) error {
     return nil
 }
 
-func (d *Dispatcher) setupTargets(cfg map[string]*config.ConfigTarget) error {
+func (d *Dispatcher) setupTargets(cfg map[string]*config.TargetConfig) error {
     if d.targetmanager == nil {
         d.targetmanager = targets.NewTargetManager(d.modes)
     } else {

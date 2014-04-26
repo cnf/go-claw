@@ -4,27 +4,24 @@ import "github.com/cnf/go-claw/modes"
 
 // Config is the main configuration object
 type Config struct {
-    Listeners map[string]*ConfigListener `json:"listeners"`
+    Listeners map[string]*ListenerConfig `json:"listeners"`
     Modes map[string]*modes.Mode `json:"modes"`
-    Targets map[string]*ConfigTarget `json:"targets"`
+    Targets map[string]*TargetConfig `json:"targets"`
     cfgfile string
     verbose bool
 }
 
-// ConfigListener holds Listener configuration
-type ConfigListener struct {
+// ListenerConfig holds Listener configuration
+type ListenerConfig struct {
     Module string
     Params map[string]string
 }
 
-// ConfigMode holds Mode configuration
-type ConfigMode map[string]Actionlist
-
 // Actionlist has a list of actions
 type Actionlist []string
 
-// ConfigTarget holds Target configuration
-type ConfigTarget struct {
+// TargetConfig holds Target configuration
+type TargetConfig struct {
     Module string
     Params map[string]string
 }
