@@ -32,6 +32,8 @@ func main() {
         clog.SetLogLevel(clog.WARN)
     }
 
+    startHTTPListener(cfg.HTTPPort())
+
     // Register all listener / target modules
     registerAllListeners()
     registerAllTargets()

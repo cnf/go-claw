@@ -19,3 +19,8 @@ func (c *Config) SetCfgFile(cfg string) {
 // func (c *Config) CfgFile() bool {
 //     return c.verbose
 // }
+
+// HTTPPort returns the HTTP Port number
+func (c *Config) HTTPPort() int {
+    return c.httpport
+}

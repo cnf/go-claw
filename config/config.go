@@ -9,6 +9,7 @@ type Config struct {
     Targets map[string]*TargetConfig `json:"targets"`
     cfgfile string
     verbose bool
+    httpport int
 }
 
 // ListenerConfig holds Listener configuration

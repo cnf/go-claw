@@ -4,5 +4,6 @@ package config
 func (c *Config) Setup() {
     c.verbose = false
     c.cfgfile = getConfigPath()
+    c.httpport = getDefaultHTTPPort()
     c.parseCommandlineArgs()
 }
