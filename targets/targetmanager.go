@@ -127,9 +127,10 @@ func (t *TargetManager) Stop() error {
             return err
         }
     }
+    // Clear out all targets and commands
     t.targets    = make(map[string]Target)
     t.targetCmds = make(map[string]map[string]*Command)
-    clog.Debug("TargetManager::Stop(): Adding internal claw target...")
+    // Add the internal claw target
     t.Add("claw", "claw", nil)
 
     return nil
