@@ -55,8 +55,33 @@ func Register() {
     //targets.RegisterAutoDetect(OnkyoAutoDetect)
 }
 
+func createOnkyoReceiver(name string, params map[string]string) (targets.Target, error) {
+    clog.Debug("onkyo: creating receiver '%s'", name)
+    var ret OnkyoReceiver
+
+    // Process incoming parameters
+    ret.Name = name
+    if err := ret.Setup(params); err != nil {
+        clog.Error(err.Error())
+        return nil, err
+    }
+    return &ret, nil
+}
+
+// SendCommand sends a command to the receiver
+func (o *OnkyoReceiver) SendCommand(repeated int, cmd string, args ...string) error {
+    // Currently we ignore the repeated parameter
+    return o.onkyoCommand(cmd, args)
+}
+
 // Starts the Onkyo target instance
 func (o *OnkyoReceiver) Start() error {
+    // 5 seconds in the past
+    o.lastsend = time.Now().Add(time.Duration(-5) * time.Second)
+    if err := o.doConnect(); err != nil {
+        clog.Warn("onkyo: could not connect to reciever: %s", err.Error())
+        // Don't return an error, it's possible a reconnect succeeds
+    }
     return nil
 }
 
@@ -262,14 +287,13 @@ func (o *OnkyoReceiver) doConnect() error {
     return errors.New("onkyo:doConnect: unknown error")
 }
 
-func (o *OnkyoReceiver) processparams(pname string, params map[string]string) error {
+func (o *OnkyoReceiver) Setup(params map[string]string) error {
     if params["connection"] == "serial" {
         o.Transport = TransportSerial
     } else {
         // By default assume TCP
         o.Transport = TransportTCP
     }
-    o.Name = pname
     switch o.Transport {
     case TransportSerial:
         if _, ok := params["device"]; !ok {
@@ -312,7 +336,7 @@ func (o *OnkyoReceiver) processparams(pname string, params map[string]string) er
     return nil
 }
 
-// Send a command to the onkyo.
+// sendCmd sends a command to the onkyo.
 // timeout = timeout to wait for response in ms
 //   timeout = 0 -> no response expected.
 //   timeout < 0 -> default timeout (15 seconds)
@@ -384,27 +408,5 @@ func (o *OnkyoReceiver) sendCmd(cmd string, timeout int) (string, error) {
         break
     }
     return "", errors.New("onkyo: unknown error sending a command")
-}
-
-func createOnkyoReceiver(name string, params map[string]string) (targets.Target, error) {
-    clog.Debug("onkyo: creating receiver '%s'", name)
-    var ret OnkyoReceiver
-
-    // Process incoming parameters
-    if err := ret.processparams(name, params); err != nil {
-        clog.Error(err.Error())
-        return nil, err
-    }
-    // 5 seconds in the past
-    ret.lastsend = time.Now().Add(time.Duration(-5) * time.Second)
-    if err := ret.doConnect(); err != nil {
-        clog.Warn("onkyo: could not connect to reciever: %s", err.Error())
-    }
-    return &ret, nil
-}
-
-// SendCommand sends a command to the receiver
-func (o *OnkyoReceiver) SendCommand(repeated int, cmd string, args ...string) error {
-    return o.onkyoCommand(cmd, args)
 }
 
