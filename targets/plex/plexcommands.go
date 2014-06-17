@@ -29,9 +29,6 @@ func (p *Plex) navigation(cmd string, repeated int) error {
         p.setLast("")
     }
 
-    clog.Debug("nav:::::: %s", p.last)
-    clog.Debug("plexcmd:nav: cmd %s", cmd)
-
     var path string
     var err error
     switch cmd {
