@@ -3,6 +3,7 @@ package plex
 import "fmt"
 
 import "github.com/cnf/go-claw/targets"
+import "github.com/cnf/go-claw/clog"
 
 // Commands returns a list of commands
 func (p *Plex) Commands() map[string]*targets.Command {
@@ -20,11 +21,19 @@ func (p *Plex) Commands() map[string]*targets.Command {
     return cmds
 }
 
-func (p *Plex) navigation(cmd string) error {
+func (p *Plex) navigation(cmd string, repeated int) error {
     navbase := "/player/navigation/"
     playbase := "/player/playback/"
 
+    if repeated == 0 {
+        p.setLast("")
+    }
+
+    clog.Debug("nav:::::: %s", p.last)
+    clog.Debug("plexcmd:nav: cmd %s", cmd)
+
     var path string
+    var err error
     switch cmd {
     case "up":
         if p.isNav() {
@@ -39,16 +48,32 @@ func (p *Plex) navigation(cmd string) error {
             path = playbase + "skipPrevious"
         }
     case "left":
-        if p.isNav() {
+        if p.isNav() && !p.isLast("seek") {
             path = navbase + "moveLeft"
         } else {
-            path = playbase + "stepBack"
+            if repeated == 0 {
+                path = playbase + "stepBack"
+            } else if repeated % 5 == 0 {
+                 p.setLast("seek")
+                path, err = p.seekTo("back")
+            } else {
+                clog.Debug("plexcmd:nav: retun nil")
+                return nil
+            }
         }
     case "right":
-        if p.isNav() {
+        if p.isNav() && !p.isLast("seek") {
             path = navbase + "moveRight"
         } else {
-            path = playbase + "stepForward"
+            if repeated == 0 {
+                path = playbase + "stepForward"
+            } else if repeated % 5 == 0 {
+                p.setLast("seek")
+                path, err = p.seekTo("fwd")
+            } else {
+                clog.Debug("plexcmd:nav: retun nil")
+                return nil
+            }
         }
     case "select":
         if p.isNav() {
@@ -65,10 +90,15 @@ func (p *Plex) navigation(cmd string) error {
     default:
         return fmt.Errorf("could not send `%s` to `%s`", cmd, p.name)
     }
+    if err != nil {
+        clog.Debug("plexcmd:nav: ERROR: %v", err)
+        return err
+    }
+    clog.Debug("plexcmd:nav: path: %s", path)
     return p.plexGet(path)
 }
 
-func (p *Plex) playback(cmd string) error {
+func (p *Plex) playback(cmd string, repeated int) error {
     base := "/player/playback/"
     var path string
     switch cmd {
@@ -90,4 +120,27 @@ func (p *Plex) playback(cmd string) error {
         return fmt.Errorf("could not send `%s` to `%s`", cmd, p.name)
     }
     return p.plexGet(path)
+}
+
+func (p *Plex) seekTo(dir string) (string, error) {
+    // base := "/player/playback/seekTo?offset="
+    time, duration, err := p.getOffset()
+    if err != nil {
+        return "", err
+    }
+    var offset int
+    if dir == "fwd" {
+        offset = time + 301000
+        if offset >= duration {
+            offset = duration
+        }
+    }
+    if dir == "back" {
+        offset = time - 120000
+        if offset <= 0 {
+            offset = 0
+        }
+    }
+    path := fmt.Sprintf("/player/playback/seekTo?offset=%d", offset)
+    return path, nil
 }

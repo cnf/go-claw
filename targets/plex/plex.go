@@ -32,6 +32,9 @@ type Plex struct {
     location string
     tlmu sync.Mutex
 
+    last string
+    lmu sync.Mutex
+
     // Content-Type v: plex/media-player
     // Resource-Identifier  v: 87615ee6-5b86-4a8d-abf6-e3b4f0e72311
     // Protocol v: plex
@@ -81,9 +84,9 @@ func (p *Plex) Stop() error {
 func (p *Plex) SendCommand(repeated int, cmd string, args ...string) error {
     switch cmd {
     case "nav":
-        return p.navigation(args[0])
+        return p.navigation(args[0], repeated)
     case "playback":
-        return p.playback(args[0])
+        return p.playback(args[0], repeated)
     case "power":
         return p.power(args[0])
     default:
@@ -117,8 +120,8 @@ func (p *Plex) plexPlaying() {
 
 func (p *Plex) getURL() string {
     p.mu.Lock()
+    defer p.mu.Unlock()
     url := p.url
-    p.mu.Unlock()
     return url
 }
 
@@ -172,35 +175,79 @@ func (p *Plex) plexGet(str string) error {
 
 func (p *Plex) setTimeline(loc string, tls map[string]timelineXML) {
     p.tlmu.Lock()
+    defer p.tlmu.Unlock()
     p.location = loc
     p.timelines = tls
-    p.tlmu.Unlock()
 }
 
 func (p *Plex) getLocation() string {
     p.tlmu.Lock()
+    defer p.tlmu.Unlock()
     loc := p.location
-    p.tlmu.Unlock()
     return loc
+}
+
+func (p *Plex) getOffset() (int, int, error) {
+    loc := p.getLocation()
+    var key string
+    p.tlmu.Lock()
+    defer p.tlmu.Unlock()
+    if (loc == "fullScreenVideo") && (p.timelines["video"].State == "playing") {
+        key = "video"
+    }
+    if (loc == "fullScreenPhoto") && (p.timelines["photo"].State == "playing") {
+        key = "photo"
+    }
+    if (loc == "fullScreenMusic") && (p.timelines["music"].State == "playing") {
+        key = "music"
+    }
+    time, terr := strconv.Atoi(p.timelines[key].Time)
+    if terr != nil {
+        clog.Debug("Plex:getOffset: timeline error: %v", terr)
+        return 0, 0, terr
+    }
+    duration, derr := strconv.Atoi(p.timelines[key].Duration)
+    if derr != nil {
+        clog.Debug("Plex:getOffset: duration error: %v", derr)
+        return 0, 0, derr
+    }
+
+    return time, duration, nil
+}
+
+func (p *Plex) setLast(last string) error {
+    p.lmu.Lock()
+    defer p.lmu.Unlock()
+    p.last = last
+    return nil
+}
+
+func (p *Plex) isLast(last string) bool {
+    p.lmu.Lock()
+    defer p.lmu.Unlock()
+    slast := p.last
+    if slast == last {
+        return true
+    }
+    return false
 }
 
 func (p *Plex) isNav() bool {
     loc := p.getLocation()
     p.tlmu.Lock()
-    tls := p.timelines
-    p.tlmu.Unlock()
+    defer p.tlmu.Unlock()
     if loc == "navigation" {
         return true
     }
     // navigation,fullScreenVideo,fullScreenPhoto,fullScreenMusic
 
-    if (loc == "fullScreenVideo") && (tls["video"].State == "playing") {
+    if (loc == "fullScreenVideo") && (p.timelines["video"].State == "playing") {
         return false
     }
-    if (loc == "fullScreenPhoto") && (tls["photo"].State == "playing") {
+    if (loc == "fullScreenPhoto") && (p.timelines["photo"].State == "playing") {
         return false
     }
-    if (loc == "fullScreenMusic") && (tls["music"].State == "playing") {
+    if (loc == "fullScreenMusic") && (p.timelines["music"].State == "playing") {
         return false
     }
     return true
